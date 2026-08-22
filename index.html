@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    :root {
+      --bg-color: #f4f6f8;
+      --card-bg: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --primary-color: #4f46e5;
+      --primary-hover: #4338ca;
+      --primary-light: #e0e7ff;
+      --border-color: #e2e8f0;
+      --danger-color: #ef4444;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+      --shadow-md: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      margin: 0;
+      padding: 32px 16px;
+      display: flex;
+      justify-content: center;
+      line-height: 1.5;
+    }
+
+    /* 3열 레이아웃 컨테이너 */
+    .app-container {
+      width: 100%;
+      max-width: 1380px;
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    /* 1열 메인 (좌측: 나만의 Daily Log) */
+    .column-daily {
+      flex: 1.1;
+      background: var(--card-bg);
+      padding: 28px;
+      border-radius: 20px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+    }
+
+    /* 2열 중앙 (주간 할 일 박스) */
+    .column-weekly {
+      flex: 1;
+      background: var(--card-bg);
+      padding: 28px;
+      border-radius: 20px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+    }
+
+    /* 3열 사이드 (우측: 반복 Task + 기존 깔끔한 캘린더) */
+    .column-side {
+      flex: 0.9;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .side-card {
+      background: var(--card-bg);
+      padding: 24px;
+      border-radius: 20px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+    }
+
+    h1, h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin: 0 0 18px 0;
+      color: var(--text-main);
+      letter-spacing: -0.02em;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      text-align: center;
+      margin-bottom: 6px;
+    }
+
+    .sub-header-date {
+      text-align: center;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    .date-picker-group {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      background: #f8fafc;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+    }
+
+    .date-picker-group label {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .date-picker-group input[type="date"] {
+      border: 1px solid var(--border-color);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: var(--text-main);
+      outline: none;
+      background: #ffffff;
+      font-family: inherit;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+      color: var(--text-main);
+    }
+
+    .task-input-container {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .task-input-container input[type="text"],
+    .repeat-input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      font-size: 0.9rem;
+      background: #f8fafc;
+      transition: all 0.2s;
+      box-sizing: border-box;
+      width: 100%;
+    }
+
+    .task-input-container input[type="text"]:focus,
+    .repeat-input:focus {
+      background: #ffffff;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+      outline: none;
+    }
+
+    .btn-add {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 0 16px;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .task-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .task-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .task-item input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--primary-color);
+      cursor: pointer;
+    }
+
+    .task-item span {
+      flex: 1;
+      font-size: 0.9rem;
+      color: var(--text-main);
+      word-break: break-all;
+    }
+
+    .task-item.completed span {
+      text-decoration: line-through;
+      color: #94a3b8;
+    }
+
+    .btn-del {
+      background: none;
+      border: none;
+      color: #cbd5e1;
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 2px 4px;
+    }
+
+    .btn-del:hover {
+      color: var(--danger-color);
+    }
+
+    textarea {
+      width: 100%;
+      height: 140px;
+      padding: 12px 14px;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      resize: vertical;
+      box-sizing: border-box;
+      font-family: inherit;
+      font-size: 0.9rem;
+      background: #f8fafc;
+      color: var(--text-main);
+      line-height: 1.5;
+    }
+
+    textarea:focus {
+      background: #ffffff;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+      outline: none;
+    }
+
+    .btn-save, .btn-repeat-add {
+      width: 100%;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+    }
+
+    .status-msg {
+      margin-top: 12px;
+      text-align: center;
+      font-size: 0.8rem;
+      font-weight: 500;
+      min-height: 18px;
+    }
+
+    /* 우측 반복 Task 스타일 */
+    .repeat-type-group {
+      display: flex;
+      gap: 14px;
+      margin: 10px 0;
+      font-size: 0.85rem;
+    }
+
+    .day-selector {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+
+    .day-selector.hidden { display: none; }
+
+    .day-btn {
+      flex: 1;
+      padding: 5px 0;
+      border: 1px solid var(--border-color);
+      background-color: #f8fafc;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .day-btn.selected {
+      background-color: var(--primary-color);
+      color: white;
+      border-color: var(--primary-color);
+    }
+
+    .repeating-task-list {
+      list-style: none;
+      padding: 0;
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .repeating-task-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 0.85rem;
+    }
+
+    .repeating-task-item .badge {
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 10px;
+      background-color: var(--primary-light);
+      color: var(--primary-color);
+      font-weight: 600;
+      margin-left: 4px;
+    }
+
+    /* 주간 할 일 박스 (Weekly Planner) 전용 스타일 */
+    .weekly-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .weekly-header h2 {
+      margin: 0;
+    }
+
+    .weekly-range-text {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .weekly-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .weekly-day-card {
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .weekly-day-card:hover {
+      border-color: var(--primary-color);
+      background: #ffffff;
+    }
+
+    .weekly-day-card.active-day {
+      border-color: var(--primary-color);
+      background: #f0f3ff;
+    }
+
+    .weekly-day-title {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: var(--text-main);
+    }
+
+    .weekly-day-title .day-tag {
+      color: var(--text-muted);
+      font-weight: 500;
+      font-size: 0.8rem;
+    }
+
+    .weekly-day-card.active-day .day-tag {
+      color: var(--primary-color);
+      font-weight: 700;
+    }
+
+    .weekly-tasks-summary {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .weekly-task-pill {
+      font-size: 0.78rem;
+      color: var(--text-main);
+      background: #ffffff;
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .weekly-no-task {
+      font-size: 0.75rem;
+      color: #cbd5e1;
+      font-style: italic;
+    }
+
+    /* 기존 깔끔한 미니 캘린더 스타일 */
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .calendar-header h3 {
+      margin: 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    .calendar-nav-btn {
+      background: none;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 2px 8px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+      text-align: center;
+    }
+
+    .calendar-day-head {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      padding: 4px 0;
+    }
+
+    .calendar-day-head.sun { color: var(--danger-color); }
+    .calendar-day-head.sat { color: #2563eb; }
+
+    .calendar-cell {
+      aspect-ratio: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      border-radius: 6px;
+      cursor: pointer;
+      position: relative;
+      transition: background 0.2s;
+      color: var(--text-main);
+    }
+
+    .calendar-cell:hover {
+      background-color: #f1f5f9;
+    }
+
+    .calendar-cell.other-month {
+      color: #cbd5e1;
+      cursor: default;
+    }
+
+    .calendar-cell.other-month:hover { background: none; }
+
+    .calendar-cell.selected-day {
+      background-color: var(--primary-light);
+      color: var(--primary-color);
+      font-weight: 700;
+    }
+
+    .calendar-cell.today {
+      border: 1px dashed var(--primary-color);
+    }
+
+    .calendar-cell .dot {
+      width: 4px;
+      height: 4px;
+      background-color: var(--primary-color);
+      border-radius: 50%;
+      position: absolute;
+      bottom: 3px;
+    }
+
+    @media (max-width: 1024px) {
+      .app-container { flex-direction: column; }
+      .column-daily, .column-weekly, .column-side { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- 1열 메인: Daily Log 섹션 -->
+    <div class="column-daily">
+      <h1>나만의 Daily Log</h1>
+      <div id="displayDate" class="sub-header-date"></div>
+      
+      <div class="date-picker-group">
+        <label for="logDate" style="margin:0;">날짜 선택:</label>
+        <input type="date" id="logDate" onchange="fetchLog()">
+      </div>
+
+      <div class="form-group">
+        <label>오늘의 일정 & 할 일</label>
+        <div class="task-input-container">
+          <input type="text" id="newTaskInput" placeholder="할 일을 입력하세요..." onkeydown="if(event.key==='Enter') addTask()">
+          <button class="btn-add" onclick="addTask()">+</button>
+        </div>
+        <ul id="taskList" class="task-list"></ul>
+      </div>
+
+      <div class="form-group">
+        <label for="diary">오늘의 한 줄 일기</label>
+        <textarea id="diary" placeholder="오늘 하루를 돌아보며 느낀 점이나 생각했던 내용을 자유롭게 적어보세요."></textarea>
+      </div>
+
+      <button class="btn-save" onclick="saveLog()">기록 저장하기</button>
+      <div id="status" class="status-msg"></div>
+    </div>
+
+    <!-- 2열 중앙: 이번 주 할 일 목록 박스 -->
+    <div class="column-weekly">
+      <div class="weekly-header">
+        <h2>이번 주 할 일</h2>
+        <span id="weeklyRangeText" class="weekly-range-text"></span>
+      </div>
+      <div id="weeklyList" class="weekly-list"></div>
+    </div>
+
+    <!-- 3열 사이드: 반복 Task 설정 + 기존 캘린더 -->
+    <div class="column-side">
+      
+      <!-- 상단: 반복 Task 설정 박스 -->
+      <div class="side-card">
+        <h2>반복 Task 설정</h2>
+        
+        <div class="form-group">
+          <input type="text" id="repeatTaskInput" class="repeat-input" placeholder="반복할 업무를 입력하세요..." onkeydown="if(event.key==='Enter') addRepeatingTask()">
+          
+          <div class="repeat-type-group">
+            <label>
+              <input type="radio" name="repeatType" value="daily" checked onclick="toggleDaySelector(false)"> 매일
+            </label>
+            <label>
+              <input type="radio" name="repeatType" value="weekly" onclick="toggleDaySelector(true)"> 매주 요일 지정
+            </label>
+          </div>
+
+          <div id="daySelector" class="day-selector hidden">
+            <button type="button" class="day-btn" data-day="Mon" onclick="toggleDaySelection(this)">월</button>
+            <button type="button" class="day-btn" data-day="Tue" onclick="toggleDaySelection(this)">화</button>
+            <button type="button" class="day-btn" data-day="Wed" onclick="toggleDaySelection(this)">수</button>
+            <button type="button" class="day-btn" data-day="Thu" onclick="toggleDaySelection(this)">목</button>
+            <button type="button" class="day-btn" data-day="Fri" onclick="toggleDaySelection(this)">금</button>
+            <button type="button" class="day-btn" data-day="Sat" onclick="toggleDaySelection(this)">토</button>
+            <button type="button" class="day-btn" data-day="Sun" onclick="toggleDaySelection(this)">일</button>
+          </div>
+
+          <button class="btn-repeat-add" onclick="addRepeatingTask()">반복 Task 등록</button>
+        </div>
+
+        <ul id="repeatingTaskList" class="repeating-task-list"></ul>
+      </div>
+
+      <!-- 하단: 미니 월간 일정 캘린더 (점 표시 기존 코드) -->
+      <div class="side-card">
+        <div class="calendar-header">
+          <button class="calendar-nav-btn" onclick="changeMonth(-1)">&lt;</button>
+          <h3 id="calendarTitle">2026년 8월</h3>
+          <button class="calendar-nav-btn" onclick="changeMonth(1)">&gt;</button>
+        </div>
+
+        <div class="calendar-grid">
+          <div class="calendar-day-head sun">일</div>
+          <div class="calendar-day-head">월</div>
+          <div class="calendar-day-head">화</div>
+          <div class="calendar-day-head">수</div>
+          <div class="calendar-day-head">목</div>
+          <div class="calendar-day-head">금</div>
+          <div class="calendar-day-head sat">토</div>
+        </div>
+        <div id="calendarGrid" class="calendar-grid"></div>
+      </div>
+
+    </div>
+
+  </div>
+
+<script>
+    let currentTasks = [];
+    let repeatingTasks = []; // 서버(구글 시트)에서 불러옴
+    let selectedDays = [];
+
+    let dailyTasksCache = {};
+
+    let calendarYear = new Date().getFullYear();
+    let calendarMonth = new Date().getMonth();
+
+    const dayMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const koreanDays = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+    const shortKoreanDays = ['일', '월', '화', '수', '목', '금', '토'];
+
+    window.onload = function() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const today = `${year}-${month}-${day}`;
+
+      document.getElementById('logDate').value = today;
+      
+      // 반복 일정과 주간 데이터를 함께 서버에서 불러옴
+      fetchInitialData();
+    };
+
+    // 모바일 전환 감지 및 자동 동기화 (30초 폴링)
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'visible') {
+        fetchInitialData();
+      }
+    });
+
+    setInterval(function() {
+      fetchInitialData();
+    }, 30000);
+
+    function setStatus(msg, isError = false) {
+      const statusEl = document.getElementById('status');
+      if (statusEl) {
+        statusEl.textContent = msg;
+        statusEl.style.color = isError ? '#ef4444' : '#10b981';
+      }
+    }
+
+    function updateHeaderDate(dateString) {
+      if (!dateString) return;
+      const dateObj = new Date(dateString + 'T00:00:00');
+      const displayEl = document.getElementById('displayDate');
+      if (displayEl) {
+        displayEl.textContent = `${dateObj.getFullYear()}년 ${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일 (${koreanDays[dateObj.getDay()]})`;
+      }
+    }
+
+    function syncCacheForCurrentDate() {
+      const currentDateVal = document.getElementById('logDate').value;
+      if (currentDateVal) {
+        dailyTasksCache[currentDateVal] = [...currentTasks];
+      }
+    }
+
+    function parseTaskData(rawTasks) {
+      if (!rawTasks) return [];
+      try {
+        const parsed = JSON.parse(rawTasks);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {
+        return rawTasks.split('\n')
+          .filter(t => t.trim() !== '')
+          .map(t => ({ text: t.replace(/^•\s*/, ''), done: false }));
+      }
+      return [];
+    }
+
+    // 초기 및 재동기화용: 반복 일정과 주간 일지를 함께 조회
+    function fetchInitialData() {
+      setStatus('데이터 동기화 중...');
+      google.script.run
+        .withSuccessHandler(function(repTasks) {
+          repeatingTasks = repTasks || [];
+          renderRepeatingTasks();
+          fetchWeeklyLog();
+        })
+        .withFailureHandler(function(err) {
+          setStatus('반복 일정 조회 실패: ' + err.message, true);
+        })
+        .loadRepeatingTasks();
+    }
+
+    /* 주간 7일 치 데이터 일괄 불러오기 */
+    function fetchWeeklyLog() {
+      const selectedDateVal = document.getElementById('logDate').value;
+      if (!selectedDateVal) return;
+
+      updateHeaderDate(selectedDateVal);
+
+      const currDate = new Date(selectedDateVal + 'T00:00:00');
+      calendarYear = currDate.getFullYear();
+      calendarMonth = currDate.getMonth();
+
+      const dayOfWeek = currDate.getDay();
+      const distanceToMon = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+      const monday = new Date(currDate);
+      monday.setDate(currDate.getDate() - distanceToMon);
+
+      const weekDates = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        weekDates.push(`${y}-${m}-${day}`);
+      }
+
+      google.script.run
+        .withSuccessHandler(function(weeklyData) {
+          weekDates.forEach(dateStr => {
+            const data = weeklyData ? weeklyData[dateStr] : null;
+            let loadedTasks = data && data.tasks ? parseTaskData(data.tasks) : [];
+            
+            // 반복 일정 병합
+            const dObj = new Date(dateStr + 'T00:00:00');
+            const dayCode = dayMap[dObj.getDay()];
+            repeatingTasks.forEach(repTask => {
+              if (repTask.type === 'daily' || repTask.days.includes(dayCode)) {
+                if (!loadedTasks.some(t => t.text === repTask.title)) {
+                  loadedTasks.push({ text: repTask.title, done: false });
+                }
+              }
+            });
+
+            dailyTasksCache[dateStr] = loadedTasks;
+          });
+
+          currentTasks = dailyTasksCache[selectedDateVal] || [];
+
+          renderTasks();
+          renderWeeklyView();
+          renderCalendar();
+          
+          if (weeklyData && weeklyData[selectedDateVal]) {
+            document.getElementById('diary').value = weeklyData[selectedDateVal].diary || '';
+          } else {
+            document.getElementById('diary').value = '';
+          }
+          setStatus('');
+        })
+        .withFailureHandler(function(err) {
+          setStatus('주간 데이터 조회 실패: ' + err.message, true);
+        })
+        .loadWeeklyData(weekDates);
+    }
+
+    function addTask() {
+      const input = document.getElementById('newTaskInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      currentTasks.push({ text: text, done: false });
+      input.value = '';
+
+      syncCacheForCurrentDate();
+      renderTasks();
+      renderWeeklyView();
+      saveLog();
+    }
+
+    function removeTask(index) {
+      currentTasks.splice(index, 1);
+      syncCacheForCurrentDate();
+      renderTasks();
+      renderWeeklyView();
+      saveLog();
+    }
+
+    function removeTaskFromDate(dateStr, taskText, event) {
+      if (event) event.stopPropagation();
+
+      const selectedDateVal = document.getElementById('logDate').value;
+
+      if (dateStr === selectedDateVal) {
+        const index = currentTasks.findIndex(t => t.text === taskText);
+        if (index !== -1) removeTask(index);
+      } else {
+        if (dailyTasksCache[dateStr]) {
+          dailyTasksCache[dateStr] = dailyTasksCache[dateStr].filter(t => t.text !== taskText);
+        }
+        
+        setStatus('저장 중...');
+        google.script.run
+          .withSuccessHandler(function() {
+            setStatus('성공적으로 저장되었습니다!');
+            setTimeout(() => setStatus(''), 3000);
+            renderWeeklyView();
+            renderCalendar();
+          })
+          .withFailureHandler(function(err) {
+            setStatus('저장 실패: ' + err.message, true);
+          })
+          .saveData({
+            date: dateStr,
+            tasks: JSON.stringify(dailyTasksCache[dateStr] || []),
+            diary: ''
+          });
+      }
+    }
+
+    function toggleTask(index) {
+      currentTasks[index].done = !currentTasks[index].done;
+      syncCacheForCurrentDate();
+      renderTasks();
+      saveLog();
+    }
+
+    function renderTasks() {
+      const listEl = document.getElementById('taskList');
+      listEl.innerHTML = '';
+
+      currentTasks.forEach((task, index) => {
+        const li = document.createElement('li');
+        li.className = 'task-item' + (task.done ? ' completed' : '');
+
+        li.innerHTML = `
+          <input type="checkbox" ${task.done ? 'checked' : ''} onchange="toggleTask(${index})">
+          <span>${escapeHtml(task.text)}</span>
+          <button class="btn-del" onclick="removeTask(${index})">✕</button>
+        `;
+        listEl.appendChild(li);
+      });
+    }
+
+    function renderWeeklyView() {
+      const selectedDateVal = document.getElementById('logDate').value;
+      if (!selectedDateVal) return;
+
+      const currDate = new Date(selectedDateVal + 'T00:00:00');
+      const dayOfWeek = currDate.getDay();
+
+      const distanceToMon = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+      const monday = new Date(currDate);
+      monday.setDate(currDate.getDate() - distanceToMon);
+
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+
+      const rangeText = `${monday.getMonth() + 1}.${monday.getDate()} ~ ${sunday.getMonth() + 1}.${sunday.getDate()}`;
+      document.getElementById('weeklyRangeText').textContent = rangeText;
+
+      const weeklyListEl = document.getElementById('weeklyList');
+      weeklyListEl.innerHTML = '';
+
+      for (let i = 0; i < 7; i++) {
+        const targetDate = new Date(monday);
+        targetDate.setDate(monday.getDate() + i);
+
+        const year = targetDate.getFullYear();
+        const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+        const day = String(targetDate.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+
+        const isCurrentSelected = (dateStr === selectedDateVal);
+        const dayCode = dayMap[targetDate.getDay()];
+
+        const dayRepTasks = repeatingTasks.filter(t => t.type === 'daily' || t.days.includes(dayCode));
+
+        let dayTasks = [];
+        if (isCurrentSelected) {
+          dayTasks = [...currentTasks];
+        } else if (dailyTasksCache[dateStr]) {
+          dayTasks = [...dailyTasksCache[dateStr]];
+        } else {
+          dayTasks = dayRepTasks.map(t => ({ text: t.title, done: false }));
+        }
+
+        const card = document.createElement('div');
+        card.className = `weekly-day-card ${isCurrentSelected ? 'active-day' : ''}`;
+        card.onclick = function() {
+          document.getElementById('logDate').value = dateStr;
+          fetchLog();
+        };
+
+        let tasksHtml = '';
+        if (dayTasks.length > 0) {
+          tasksHtml = dayTasks.map(t => `
+            <li class="weekly-task-pill">
+              <span>${escapeHtml(t.text)}</span>
+              <button class="weekly-del-btn" onclick="removeTaskFromDate('${dateStr}', '${escapeHtml(t.text).replace(/'/g, "\\'")}', event)">✕</button>
+            </li>
+          `).join('');
+        } else {
+          tasksHtml = `<li class="weekly-no-task">일정 없음</li>`;
+        }
+
+        card.innerHTML = `
+          <div class="weekly-day-title">
+            <span>${targetDate.getMonth() + 1}/${targetDate.getDate()}</span>
+            <span class="day-tag">${shortKoreanDays[targetDate.getDay()]}요일</span>
+          </div>
+          <ul class="weekly-tasks-summary">
+            ${tasksHtml}
+          </ul>
+        `;
+
+        weeklyListEl.appendChild(card);
+      }
+    }
+
+    function renderCalendar() {
+      const calendarTitle = document.getElementById('calendarTitle');
+      const calendarGrid = document.getElementById('calendarGrid');
+
+      calendarTitle.textContent = `${calendarYear}년 ${calendarMonth + 1}월`;
+      calendarGrid.innerHTML = '';
+
+      const firstDay = new Date(calendarYear, calendarMonth, 1).getDay();
+      const lastDate = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+      const prevLastDate = new Date(calendarYear, calendarMonth, 0).getDate();
+      const selectedDateVal = document.getElementById('logDate').value;
+
+      for (let i = firstDay - 1; i >= 0; i--) {
+        const cell = document.createElement('div');
+        cell.className = 'calendar-cell other-month';
+        cell.textContent = prevLastDate - i;
+        calendarGrid.appendChild(cell);
+      }
+
+      for (let day = 1; day <= lastDate; day++) {
+        const cell = document.createElement('div');
+        cell.className = 'calendar-cell';
+        cell.textContent = day;
+
+        const m = String(calendarMonth + 1).padStart(2, '0');
+        const d = String(day).padStart(2, '0');
+        const dateStr = `${calendarYear}-${m}-${d}`;
+
+        if (dateStr === selectedDateVal) cell.classList.add('selected-day');
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (dateStr === todayStr) cell.classList.add('today');
+
+        const dayOfWeek = dayMap[new Date(calendarYear, calendarMonth, day).getDay()];
+        const hasRepeating = repeatingTasks.some(t => t.type === 'daily' || t.days.includes(dayOfWeek));
+        const hasCachedTasks = dailyTasksCache[dateStr] && dailyTasksCache[dateStr].length > 0;
+
+        if (hasRepeating || hasCachedTasks) {
+          const dot = document.createElement('div');
+          dot.className = 'dot';
+          cell.appendChild(dot);
+        }
+
+        cell.onclick = function() {
+          document.getElementById('logDate').value = dateStr;
+          fetchLog();
+        };
+
+        calendarGrid.appendChild(cell);
+      }
+
+      const totalCells = firstDay + lastDate;
+      const nextDays = (totalCells > 35 ? 42 : 35) - totalCells;
+      for (let i = 1; i <= nextDays; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'calendar-cell other-month';
+        cell.textContent = i;
+        calendarGrid.appendChild(cell);
+      }
+    }
+
+    function changeMonth(delta) {
+      calendarMonth += delta;
+      if (calendarMonth < 0) {
+        calendarMonth = 11;
+        calendarYear -= 1;
+      } else if (calendarMonth > 11) {
+        calendarMonth = 0;
+        calendarYear += 1;
+      }
+      renderCalendar();
+    }
+
+    function toggleDaySelector(show) {
+      const daySelector = document.getElementById('daySelector');
+      if (show) {
+        daySelector.classList.remove('hidden');
+      } else {
+        daySelector.classList.add('hidden');
+        selectedDays = [];
+        document.querySelectorAll('.day-btn').forEach(btn => btn.classList.remove('selected'));
+      }
+    }
+
+    function toggleDaySelection(button) {
+      const day = button.getAttribute('data-day');
+      if (selectedDays.includes(day)) {
+        selectedDays = selectedDays.filter(d => d !== day);
+        button.classList.remove('selected');
+      } else {
+        selectedDays.push(day);
+        button.classList.add('selected');
+      }
+    }
+
+    /* 반복 일정 추가 - 구글 시트로 저장 */
+    function addRepeatingTask() {
+      const input = document.getElementById('repeatTaskInput');
+      const title = input.value.trim();
+      const repeatType = document.querySelector('input[name="repeatType"]:checked').value;
+
+      if (!title) return;
+
+      if (repeatType === 'weekly' && selectedDays.length === 0) {
+        alert('최소 하나 이상의 요일을 선택해주세요.');
+        return;
+      }
+
+      const newTask = {
+        id: Date.now(),
+        title: title,
+        type: repeatType,
+        days: repeatType === 'weekly' ? [...selectedDays] : ['매일']
+      };
+
+      setStatus('반복 일정 저장 중...');
+      google.script.run
+        .withSuccessHandler(function(updatedTasks) {
+          repeatingTasks = updatedTasks || [];
+          renderRepeatingTasks();
+          fetchWeeklyLog();
+          setStatus('반복 일정이 저장되었습니다!');
+          setTimeout(() => setStatus(''), 3000);
+        })
+        .withFailureHandler(function(err) {
+          setStatus('반복 일정 저장 실패: ' + err.message, true);
+        })
+        .addRepeatingTaskServer(newTask);
+
+      input.value = '';
+      if (repeatType === 'weekly') {
+        toggleDaySelector(false);
+        document.querySelector('input[value="daily"]').checked = true;
+      }
+    }
+
+    /* 반복 일정 삭제 - 구글 시트에서 삭제 */
+    function deleteRepeatingTask(id) {
+      setStatus('반복 일정 삭제 중...');
+      google.script.run
+        .withSuccessHandler(function(updatedTasks) {
+          repeatingTasks = updatedTasks || [];
+          renderRepeatingTasks();
+          fetchWeeklyLog();
+          setStatus('삭제되었습니다!');
+          setTimeout(() => setStatus(''), 3000);
+        })
+        .withFailureHandler(function(err) {
+          setStatus('삭제 실패: ' + err.message, true);
+        })
+        .deleteRepeatingTaskServer(id);
+    }
+
+    function renderRepeatingTasks() {
+      const listElement = document.getElementById('repeatingTaskList');
+      if (!listElement) return;
+
+      listElement.innerHTML = '';
+
+      repeatingTasks.forEach(task => {
+        const li = document.createElement('li');
+        li.className = 'repeating-task-item';
+        const dayBadge = task.type === 'daily' ? '매일' : task.days.join(', ');
+
+        li.innerHTML = `
+          <div>
+            <span>${escapeHtml(task.title)}</span>
+            <span class="badge">${dayBadge}</span>
+          </div>
+          <button class="btn-del" onclick="deleteRepeatingTask(${task.id})">✕</button>
+        `;
+
+        listElement.appendChild(li);
+      });
+    }
+
+    function escapeHtml(text) {
+      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    function fetchLog() {
+      const selectedDate = document.getElementById('logDate').value;
+      if (!selectedDate) return;
+
+      if (!dailyTasksCache[selectedDate]) {
+        fetchWeeklyLog();
+        return;
+      }
+
+      updateHeaderDate(selectedDate);
+      currentTasks = dailyTasksCache[selectedDate] || [];
+
+      renderTasks();
+      renderWeeklyView();
+      renderCalendar();
+
+      setStatus('데이터를 불러오는 중...');
+      google.script.run
+        .withSuccessHandler(function(data) {
+          document.getElementById('diary').value = (data && data.diary) ? data.diary : '';
+          setStatus('');
+        })
+        .withFailureHandler(function(err) {
+          setStatus('조회 실패: ' + err.message, true);
+        })
+        .loadDataByDate(selectedDate);
+    }
+
+    function saveLog() {
+      const date = document.getElementById('logDate').value;
+      const diary = document.getElementById('diary').value;
+
+      if (!date) {
+        alert('날짜를 선택해주세요.');
+        return;
+      }
+
+      syncCacheForCurrentDate();
+
+      setStatus('저장 중...');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          setStatus('성공적으로 저장되었습니다!');
+          setTimeout(() => setStatus(''), 3000);
+          renderWeeklyView();
+          renderCalendar();
+        })
+        .withFailureHandler(function(err) {
+          setStatus('저장 실패: ' + err.message, true);
+        })
+        .saveData({
+          date: date,
+          tasks: JSON.stringify(currentTasks),
+          diary: diary
+        });
+    }
+</script>
+</body>
+</html>
