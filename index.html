@@ -2,6 +2,8 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>나만의 Daily Log</title>
   <style>
     :root {
       --bg-color: #f4f6f8;
@@ -17,6 +19,8 @@
       --shadow-md: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01);
     }
 
+    * { box-sizing: border-box; }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, sans-serif;
       background-color: var(--bg-color);
@@ -28,7 +32,6 @@
       line-height: 1.5;
     }
 
-    /* 3열 레이아웃 컨테이너 */
     .app-container {
       width: 100%;
       max-width: 1380px;
@@ -37,7 +40,6 @@
       align-items: flex-start;
     }
 
-    /* 1열 메인 (좌측: 나만의 Daily Log) */
     .column-daily {
       flex: 1.1;
       background: var(--card-bg);
@@ -47,7 +49,6 @@
       border: 1px solid rgba(255, 255, 255, 0.8);
     }
 
-    /* 2열 중앙 (주간 할 일 박스) */
     .column-weekly {
       flex: 1;
       background: var(--card-bg);
@@ -57,7 +58,6 @@
       border: 1px solid rgba(255, 255, 255, 0.8);
     }
 
-    /* 3열 사이드 (우측: 반복 Task + 기존 깔끔한 캘린더) */
     .column-side {
       flex: 0.9;
       display: flex;
@@ -123,9 +123,7 @@
       font-family: inherit;
     }
 
-    .form-group {
-      margin-bottom: 20px;
-    }
+    .form-group { margin-bottom: 20px; }
 
     label {
       display: block;
@@ -221,9 +219,7 @@
       padding: 2px 4px;
     }
 
-    .btn-del:hover {
-      color: var(--danger-color);
-    }
+    .btn-del:hover { color: var(--danger-color); }
 
     textarea {
       width: 100%;
@@ -268,7 +264,6 @@
       min-height: 18px;
     }
 
-    /* 우측 반복 Task 스타일 */
     .repeat-type-group {
       display: flex;
       gap: 14px;
@@ -331,7 +326,6 @@
       margin-left: 4px;
     }
 
-    /* 주간 할 일 박스 (Weekly Planner) 전용 스타일 */
     .weekly-header {
       display: flex;
       justify-content: space-between;
@@ -339,9 +333,7 @@
       margin-bottom: 16px;
     }
 
-    .weekly-header h2 {
-      margin: 0;
-    }
+    .weekly-header h2 { margin: 0; }
 
     .weekly-range-text {
       font-size: 0.8rem;
@@ -404,16 +396,34 @@
     }
 
     .weekly-task-pill {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       font-size: 0.78rem;
       color: var(--text-main);
       background: #ffffff;
       padding: 3px 8px;
       border-radius: 6px;
       border: 1px solid var(--border-color);
+    }
+
+    .weekly-task-pill span {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      flex: 1;
     }
+
+    .weekly-del-btn {
+      background: none;
+      border: none;
+      color: #cbd5e1;
+      cursor: pointer;
+      font-size: 0.75rem;
+      padding: 0 0 0 6px;
+    }
+
+    .weekly-del-btn:hover { color: var(--danger-color); }
 
     .weekly-no-task {
       font-size: 0.75rem;
@@ -421,7 +431,6 @@
       font-style: italic;
     }
 
-    /* 기존 깔끔한 미니 캘린더 스타일 */
     .calendar-header {
       display: flex;
       justify-content: space-between;
@@ -476,9 +485,7 @@
       color: var(--text-main);
     }
 
-    .calendar-cell:hover {
-      background-color: #f1f5f9;
-    }
+    .calendar-cell:hover { background-color: #f1f5f9; }
 
     .calendar-cell.other-month {
       color: #cbd5e1;
@@ -493,9 +500,7 @@
       font-weight: 700;
     }
 
-    .calendar-cell.today {
-      border: 1px dashed var(--primary-color);
-    }
+    .calendar-cell.today { border: 1px dashed var(--primary-color); }
 
     .calendar-cell .dot {
       width: 4px;
@@ -510,91 +515,29 @@
       .app-container { flex-direction: column; }
       .column-daily, .column-weekly, .column-side { width: 100%; }
     }
-    /* ==========================================
-   모바일 최적화 반응형 스타일
-   ========================================== */
 
-/* 1. 기본 요소들이 화면 밖으로 나가지 않도록 설정 */
-* {
-  box-sizing: border-box;
-}
+    @media (max-width: 768px) {
+      body { padding: 10px !important; }
+      .app-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 auto !important;
+      }
 
-/* 2. 모바일 화면 (너비 768px 이하) 대응 */
-@media (max-width: 768px) {
-  /* 전체 컨테이너 너비 및 여백 조정 */
-  body {
-    padding: 10px !important;
-  }
-  
-  .container, .main-content, #app {
-    width: 100% !important;
-    max-width: 100% !important;
-    padding: 10px !important;
-    margin: 0 auto !important;
-  }
+      .column-daily, .column-weekly, .side-card {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding: 15px !important;
+      }
 
-  /* 일기/일정 박스 및 모달 창 최적화 */
-  .card, .box, .modal-content, #diarySection, #calendarSection {
-    width: 100% !important;
-    max-width: 100% !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    padding: 15px !important;
-  }
-
-  /* 입력창 및 버튼 모바일 크기 맞춤 */
-  input[type="text"], textarea, select, button {
-    width: 100% !important;
-    font-size: 16px !important; /* 아이폰 자동 확대 방지 크기 */
-  }
-
-  /* 달력 표나 일기 테이블 가로 스크롤 허용 */
-  .table-container, .calendar-container {
-    width: 100%;
-    overflow-x: auto;
-  }
-}
-/* ==========================================
-   모바일 요일별 일정 / + 버튼 비율 최적화
-   ========================================== */
-/* ==========================================
-   모바일 전용 스크롤 플립 애니메이션
-   ========================================== */
-@media (max-width: 768px) {
-  /* 3D 회전 효과가 입체적으로 보이도록 부모 요소 입체감 부여 */
-  .card, .box, #diarySection, #calendarSection {
-    perspective: 1000px;
-    backface-visibility: hidden;
-  }
-
-  /* 스크롤로 감지되었을 때 추가될 애니메이션 클래스 */
-  .flip-horizontal-bottom {
-    -webkit-animation: flip-horizontal-bottom 0.6s cubic-bezier(0.455, 0.030, 0.515, 0.955) both;
-            animation: flip-horizontal-bottom 0.6s cubic-bezier(0.455, 0.030, 0.515, 0.955) both;
-  }
-
-  @-webkit-keyframes flip-horizontal-bottom {
-    0% {
-      -webkit-transform: rotateX(0);
-              transform: rotateX(0);
+      input[type="text"], textarea, select, button {
+        font-size: 16px !important;
+      }
+      .weekly-list { width: 100%; }
     }
-    100% {
-      -webkit-transform: rotateX(-360deg); /* 180deg는 글자가 뒤집히므로 360deg 한 바퀴 추천! */
-              transform: rotateX(-360deg);
-    }
-  }
-
-  @keyframes flip-horizontal-bottom {
-    0% {
-      -webkit-transform: rotateX(0);
-              transform: rotateX(0);
-    }
-    100% {
-      -webkit-transform: rotateX(-360deg);
-              transform: rotateX(-360deg);
-    }
-  }
-}
   </style>
 </head>
 <body>
@@ -628,32 +571,24 @@
       <div id="status" class="status-msg"></div>
     </div>
 
-    <!-- 2열 중앙: 이번 주 할 일 목록 박스 -->
+    <!-- 2열 중앙: 앞으로 할 일 목록 박스 (선택일 포함 +6일) -->
     <div class="column-weekly">
       <div class="weekly-header">
-        <h2>이번 주 할 일</h2>
+        <h2>앞으로 할 일</h2>
         <span id="weeklyRangeText" class="weekly-range-text"></span>
       </div>
       <div id="weeklyList" class="weekly-list"></div>
     </div>
 
-    <!-- 3열 사이드: 반복 Task 설정 + 기존 캘린더 -->
+    <!-- 3열 사이드: 반복 Task 설정 + 미니 캘린더 -->
     <div class="column-side">
-      
-      <!-- 상단: 반복 Task 설정 박스 -->
       <div class="side-card">
         <h2>반복 Task 설정</h2>
-        
         <div class="form-group">
           <input type="text" id="repeatTaskInput" class="repeat-input" placeholder="반복할 업무를 입력하세요..." onkeydown="if(event.key==='Enter') addRepeatingTask()">
-          
           <div class="repeat-type-group">
-            <label>
-              <input type="radio" name="repeatType" value="daily" checked onclick="toggleDaySelector(false)"> 매일
-            </label>
-            <label>
-              <input type="radio" name="repeatType" value="weekly" onclick="toggleDaySelector(true)"> 매주 요일 지정
-            </label>
+            <label><input type="radio" name="repeatType" value="daily" checked onclick="toggleDaySelector(false)"> 매일</label>
+            <label><input type="radio" name="repeatType" value="weekly" onclick="toggleDaySelector(true)"> 매주 요일 지정</label>
           </div>
 
           <div id="daySelector" class="day-selector hidden">
@@ -668,11 +603,9 @@
 
           <button class="btn-repeat-add" onclick="addRepeatingTask()">반복 Task 등록</button>
         </div>
-
         <ul id="repeatingTaskList" class="repeating-task-list"></ul>
       </div>
 
-      <!-- 하단: 미니 월간 일정 캘린더 (점 표시 기존 코드) -->
       <div class="side-card">
         <div class="calendar-header">
           <button class="calendar-nav-btn" onclick="changeMonth(-1)">&lt;</button>
@@ -691,16 +624,14 @@
         </div>
         <div id="calendarGrid" class="calendar-grid"></div>
       </div>
-
     </div>
 
   </div>
 
 <script>
     let currentTasks = [];
-    let repeatingTasks = []; // 서버(구글 시트)에서 불러옴
+    let repeatingTasks = []; 
     let selectedDays = [];
-
     let dailyTasksCache = {};
 
     let calendarYear = new Date().getFullYear();
@@ -719,20 +650,13 @@
 
       document.getElementById('logDate').value = today;
       
-      // 반복 일정과 주간 데이터를 함께 서버에서 불러옴
+      updateHeaderDate(today);
+      renderTasks();
+      renderWeeklyView();
+      renderCalendar();
+
       fetchInitialData();
     };
-
-    // 모바일 전환 감지 및 자동 동기화 (30초 폴링)
-    document.addEventListener('visibilitychange', function() {
-      if (document.visibilityState === 'visible') {
-        fetchInitialData();
-      }
-    });
-
-    setInterval(function() {
-      fetchInitialData();
-    }, 30000);
 
     function setStatus(msg, isError = false) {
       const statusEl = document.getElementById('status');
@@ -761,32 +685,38 @@
     function parseTaskData(rawTasks) {
       if (!rawTasks) return [];
       try {
-        const parsed = JSON.parse(rawTasks);
+        const parsed = typeof rawTasks === 'string' ? JSON.parse(rawTasks) : rawTasks;
         if (Array.isArray(parsed)) return parsed;
       } catch (e) {
-        return rawTasks.split('\n')
-          .filter(t => t.trim() !== '')
-          .map(t => ({ text: t.replace(/^•\s*/, ''), done: false }));
+        if (typeof rawTasks === 'string') {
+          return rawTasks.split('\n')
+            .filter(t => t.trim() !== '')
+            .map(t => ({ text: t.replace(/^•\s*/, ''), done: false }));
+        }
       }
       return [];
     }
 
-    // 초기 및 재동기화용: 반복 일정과 주간 일지를 함께 조회
     function fetchInitialData() {
       setStatus('데이터 동기화 중...');
-      google.script.run
-        .withSuccessHandler(function(repTasks) {
-          repeatingTasks = repTasks || [];
-          renderRepeatingTasks();
-          fetchWeeklyLog();
-        })
-        .withFailureHandler(function(err) {
-          setStatus('반복 일정 조회 실패: ' + err.message, true);
-        })
-        .loadRepeatingTasks();
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(repTasks) {
+            repeatingTasks = repTasks || [];
+            renderRepeatingTasks();
+            fetchWeeklyLog();
+          })
+          .withFailureHandler(function(err) {
+            setStatus('반복 일정 조회 오류', true);
+            fetchWeeklyLog();
+          })
+          .loadRepeatingTasks();
+      } else {
+        setStatus('');
+      }
     }
 
-    /* 주간 7일 치 데이터 일괄 불러오기 */
+    // 선택한 날짜부터 +6일까지 총 7일 간의 데이터 조회
     function fetchWeeklyLog() {
       const selectedDateVal = document.getElementById('logDate').value;
       if (!selectedDateVal) return;
@@ -797,58 +727,66 @@
       calendarYear = currDate.getFullYear();
       calendarMonth = currDate.getMonth();
 
-      const dayOfWeek = currDate.getDay();
-      const distanceToMon = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
-      const monday = new Date(currDate);
-      monday.setDate(currDate.getDate() - distanceToMon);
-
       const weekDates = [];
       for (let i = 0; i < 7; i++) {
-        const d = new Date(monday);
-        d.setDate(monday.getDate() + i);
+        const d = new Date(currDate);
+        d.setDate(currDate.getDate() + i);
         const y = d.getFullYear();
         const m = String(d.getMonth() + 1).padStart(2, '0');
         const day = String(d.getDate()).padStart(2, '0');
         weekDates.push(`${y}-${m}-${day}`);
       }
 
-      google.script.run
-        .withSuccessHandler(function(weeklyData) {
-          weekDates.forEach(dateStr => {
-            const data = weeklyData ? weeklyData[dateStr] : null;
-            let loadedTasks = data && data.tasks ? parseTaskData(data.tasks) : [];
-            
-            // 반복 일정 병합
-            const dObj = new Date(dateStr + 'T00:00:00');
-            const dayCode = dayMap[dObj.getDay()];
-            repeatingTasks.forEach(repTask => {
-              if (repTask.type === 'daily' || repTask.days.includes(dayCode)) {
-                if (!loadedTasks.some(t => t.text === repTask.title)) {
-                  loadedTasks.push({ text: repTask.title, done: false });
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(weeklyData) {
+            weekDates.forEach(dateStr => {
+              const data = weeklyData ? weeklyData[dateStr] : null;
+              let loadedTasks = data && data.tasks ? parseTaskData(data.tasks) : [];
+              
+              const dObj = new Date(dateStr + 'T00:00:00');
+              const dayCode = dayMap[dObj.getDay()];
+              repeatingTasks.forEach(repTask => {
+                if (repTask.type === 'daily' || (repTask.days && repTask.days.includes(dayCode))) {
+                  if (!loadedTasks.some(t => t.text === repTask.title)) {
+                    loadedTasks.push({ text: repTask.title, done: false });
+                  }
                 }
-              }
+              });
+
+              dailyTasksCache[dateStr] = loadedTasks;
             });
 
-            dailyTasksCache[dateStr] = loadedTasks;
-          });
+            currentTasks = dailyTasksCache[selectedDateVal] || [];
 
-          currentTasks = dailyTasksCache[selectedDateVal] || [];
+            renderTasks();
+            renderWeeklyView();
+            renderCalendar();
+            
+            if (weeklyData && weeklyData[selectedDateVal]) {
+              document.getElementById('diary').value = weeklyData[selectedDateVal].diary || '';
+            } else {
+              document.getElementById('diary').value = '';
+            }
+            setStatus('');
+          })
+          .withFailureHandler(function(err) {
+            setStatus('데이터 동기화 오류', true);
+            renderTasks();
+            renderWeeklyView();
+            renderCalendar();
+          })
+          .loadWeeklyData(weekDates);
+      } else {
+        renderTasks();
+        renderWeeklyView();
+        renderCalendar();
+      }
+    }
 
-          renderTasks();
-          renderWeeklyView();
-          renderCalendar();
-          
-          if (weeklyData && weeklyData[selectedDateVal]) {
-            document.getElementById('diary').value = weeklyData[selectedDateVal].diary || '';
-          } else {
-            document.getElementById('diary').value = '';
-          }
-          setStatus('');
-        })
-        .withFailureHandler(function(err) {
-          setStatus('주간 데이터 조회 실패: ' + err.message, true);
-        })
-        .loadWeeklyData(weekDates);
+    function fetchLog() {
+      syncCacheForCurrentDate();
+      fetchWeeklyLog();
     }
 
     function addTask() {
@@ -886,22 +824,22 @@
           dailyTasksCache[dateStr] = dailyTasksCache[dateStr].filter(t => t.text !== taskText);
         }
         
-        setStatus('저장 중...');
-        google.script.run
-          .withSuccessHandler(function() {
-            setStatus('성공적으로 저장되었습니다!');
-            setTimeout(() => setStatus(''), 3000);
-            renderWeeklyView();
-            renderCalendar();
-          })
-          .withFailureHandler(function(err) {
-            setStatus('저장 실패: ' + err.message, true);
-          })
-          .saveData({
-            date: dateStr,
-            tasks: JSON.stringify(dailyTasksCache[dateStr] || []),
-            diary: ''
-          });
+        renderWeeklyView();
+        renderCalendar();
+
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+          setStatus('저장 중...');
+          google.script.run
+            .withSuccessHandler(function() {
+              setStatus('저장 완료');
+              setTimeout(() => setStatus(''), 2000);
+            })
+            .saveData({
+              date: dateStr,
+              tasks: JSON.stringify(dailyTasksCache[dateStr] || []),
+              diary: ''
+            });
+        }
       }
     }
 
@@ -910,6 +848,32 @@
       syncCacheForCurrentDate();
       renderTasks();
       saveLog();
+    }
+
+    function saveLog() {
+      const dateVal = document.getElementById('logDate').value;
+      const diaryVal = document.getElementById('diary').value;
+
+      if (!dateVal) return;
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        setStatus('저장 중...');
+        google.script.run
+          .withSuccessHandler(function() {
+            setStatus('기록 저장 완료');
+            setTimeout(() => setStatus(''), 2000);
+            renderWeeklyView();
+            renderCalendar();
+          })
+          .withFailureHandler(function(err) {
+            setStatus('저장 오류: ' + err.message, true);
+          })
+          .saveData({
+            date: dateVal,
+            tasks: JSON.stringify(currentTasks),
+            diary: diaryVal
+          });
+      }
     }
 
     function renderTasks() {
@@ -929,29 +893,25 @@
       });
     }
 
+    // 선택한 날짜 + 6일 범위를 렌더링하도록 변경
     function renderWeeklyView() {
       const selectedDateVal = document.getElementById('logDate').value;
       if (!selectedDateVal) return;
 
       const currDate = new Date(selectedDateVal + 'T00:00:00');
-      const dayOfWeek = currDate.getDay();
+      
+      const endDate = new Date(currDate);
+      endDate.setDate(currDate.getDate() + 6);
 
-      const distanceToMon = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
-      const monday = new Date(currDate);
-      monday.setDate(currDate.getDate() - distanceToMon);
-
-      const sunday = new Date(monday);
-      sunday.setDate(monday.getDate() + 6);
-
-      const rangeText = `${monday.getMonth() + 1}.${monday.getDate()} ~ ${sunday.getMonth() + 1}.${sunday.getDate()}`;
+      const rangeText = `${currDate.getMonth() + 1}.${currDate.getDate()} ~ ${endDate.getMonth() + 1}.${endDate.getDate()}`;
       document.getElementById('weeklyRangeText').textContent = rangeText;
 
       const weeklyListEl = document.getElementById('weeklyList');
       weeklyListEl.innerHTML = '';
 
       for (let i = 0; i < 7; i++) {
-        const targetDate = new Date(monday);
-        targetDate.setDate(monday.getDate() + i);
+        const targetDate = new Date(currDate);
+        targetDate.setDate(currDate.getDate() + i);
 
         const year = targetDate.getFullYear();
         const month = String(targetDate.getMonth() + 1).padStart(2, '0');
@@ -961,7 +921,7 @@
         const isCurrentSelected = (dateStr === selectedDateVal);
         const dayCode = dayMap[targetDate.getDay()];
 
-        const dayRepTasks = repeatingTasks.filter(t => t.type === 'daily' || t.days.includes(dayCode));
+        const dayRepTasks = repeatingTasks.filter(t => t.type === 'daily' || (t.days && t.days.includes(dayCode)));
 
         let dayTasks = [];
         if (isCurrentSelected) {
@@ -1038,7 +998,7 @@
         if (dateStr === todayStr) cell.classList.add('today');
 
         const dayOfWeek = dayMap[new Date(calendarYear, calendarMonth, day).getDay()];
-        const hasRepeating = repeatingTasks.some(t => t.type === 'daily' || t.days.includes(dayOfWeek));
+        const hasRepeating = repeatingTasks.some(t => t.type === 'daily' || (t.days && t.days.includes(dayOfWeek)));
         const hasCachedTasks = dailyTasksCache[dateStr] && dailyTasksCache[dateStr].length > 0;
 
         if (hasRepeating || hasCachedTasks) {
@@ -1099,7 +1059,6 @@
       }
     }
 
-    /* 반복 일정 추가 - 구글 시트로 저장 */
     function addRepeatingTask() {
       const input = document.getElementById('repeatTaskInput');
       const title = input.value.trim();
@@ -1119,181 +1078,65 @@
         days: repeatType === 'weekly' ? [...selectedDays] : ['매일']
       };
 
-      setStatus('반복 일정 저장 중...');
-      google.script.run
-        .withSuccessHandler(function(updatedTasks) {
-          repeatingTasks = updatedTasks || [];
-          renderRepeatingTasks();
-          fetchWeeklyLog();
-          setStatus('반복 일정이 저장되었습니다!');
-          setTimeout(() => setStatus(''), 3000);
-        })
-        .withFailureHandler(function(err) {
-          setStatus('반복 일정 저장 실패: ' + err.message, true);
-        })
-        .addRepeatingTaskServer(newTask);
-
+      repeatingTasks.push(newTask);
       input.value = '';
-      if (repeatType === 'weekly') {
-        toggleDaySelector(false);
-        document.querySelector('input[value="daily"]').checked = true;
+      renderRepeatingTasks();
+      fetchWeeklyLog();
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run.saveRepeatingTask(newTask);
       }
     }
 
-    /* 반복 일정 삭제 - 구글 시트에서 삭제 */
-    function deleteRepeatingTask(id) {
-      setStatus('반복 일정 삭제 중...');
-      google.script.run
-        .withSuccessHandler(function(updatedTasks) {
-          repeatingTasks = updatedTasks || [];
-          renderRepeatingTasks();
-          fetchWeeklyLog();
-          setStatus('삭제되었습니다!');
-          setTimeout(() => setStatus(''), 3000);
-        })
-        .withFailureHandler(function(err) {
-          setStatus('삭제 실패: ' + err.message, true);
-        })
-        .deleteRepeatingTaskServer(id);
+    function removeRepeatingTask(id) {
+      repeatingTasks = repeatingTasks.filter(t => t.id !== id);
+      renderRepeatingTasks();
+      fetchWeeklyLog();
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run.deleteRepeatingTask(id);
+      }
     }
 
     function renderRepeatingTasks() {
-      const listElement = document.getElementById('repeatingTaskList');
-      if (!listElement) return;
-
-      listElement.innerHTML = '';
+      const listEl = document.getElementById('repeatingTaskList');
+      listEl.innerHTML = '';
 
       repeatingTasks.forEach(task => {
         const li = document.createElement('li');
         li.className = 'repeating-task-item';
-        const dayBadge = task.type === 'daily' ? '매일' : task.days.join(', ');
+
+        let badgeText = task.type === 'daily' ? '매일' : task.days.join(', ');
 
         li.innerHTML = `
           <div>
             <span>${escapeHtml(task.title)}</span>
-            <span class="badge">${dayBadge}</span>
+            <span class="badge">${badgeText}</span>
           </div>
-          <button class="btn-del" onclick="deleteRepeatingTask(${task.id})">✕</button>
+          <button class="btn-del" onclick="removeRepeatingTask(${task.id})">✕</button>
         `;
-
-        listElement.appendChild(li);
+        listEl.appendChild(li);
       });
     }
 
-    function escapeHtml(text) {
-      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
     }
+    // 1분(60초)마다 자동 동기화 실행
+    setInterval(() => {
+      const isUserTyping = document.activeElement && 
+        (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA');
 
-    function fetchLog() {
-      const selectedDate = document.getElementById('logDate').value;
-      if (!selectedDate) return;
-
-      if (!dailyTasksCache[selectedDate]) {
+      if (!isUserTyping) {
         fetchWeeklyLog();
-        return;
       }
-
-      updateHeaderDate(selectedDate);
-      currentTasks = dailyTasksCache[selectedDate] || [];
-
-      renderTasks();
-      renderWeeklyView();
-      renderCalendar();
-
-      setStatus('데이터를 불러오는 중...');
-      google.script.run
-        .withSuccessHandler(function(data) {
-          document.getElementById('diary').value = (data && data.diary) ? data.diary : '';
-          setStatus('');
-        })
-        .withFailureHandler(function(err) {
-          setStatus('조회 실패: ' + err.message, true);
-        })
-        .loadDataByDate(selectedDate);
-    }
-
-    function saveLog() {
-      const date = document.getElementById('logDate').value;
-      const diary = document.getElementById('diary').value;
-
-      if (!date) {
-        alert('날짜를 선택해주세요.');
-        return;
-      }
-
-      syncCacheForCurrentDate();
-
-      setStatus('저장 중...');
-      google.script.run
-        .withSuccessHandler(function(res) {
-          setStatus('성공적으로 저장되었습니다!');
-          setTimeout(() => setStatus(''), 3000);
-          renderWeeklyView();
-          renderCalendar();
-        })
-        .withFailureHandler(function(err) {
-          setStatus('저장 실패: ' + err.message, true);
-        })
-        .saveData({
-          date: date,
-          tasks: JSON.stringify(currentTasks),
-          diary: diary
-        });
-    }
-    // ==========================================
-// 10초 자동 동기화 (작성 중 감지 안전장치 포함)
-// ==========================================
-    setInterval(function() {
-      // 1. 일기 작성 입력창에 내용이 적혀있는지 확인
-      const diaryInput = document.getElementById('diaryContent'); // 일기 textarea ID
-      const isEditingDiary = diaryInput && diaryInput.value.trim().length > 0;
-
-      // 2. 일정 추가/수정 모달(팝업창)이 열려있는지 확인
-      const modal = document.getElementById('eventModal'); // 모달 엘리먼트 ID
-      const isModalOpen = modal && modal.style.display !== 'none' && modal.style.display !== '';
-
-      // 작성 중이거나 모달이 열려있으면 동기화를 건너뜁니다.
-      if (isEditingDiary || isModalOpen) {
-        console.log('작성 중이거나 모달이 열려있어 자동 동기화를 건너뜁니다.');
-        return;
-      }
-
-      // 안전한 상태일 때만 백그라운드 데이터 재조회
-      if (typeof fetchInitialData === 'function') {
-        fetchInitialData();
-      }
-    }, 60000); // 10000ms = 10초
-    // ==========================================
-// 모바일 스크롤 감지 애니메이션 실행기
-// ==========================================
-    document.addEventListener('DOMContentLoaded', function() {
-      // 모바일 화면일 때만 관찰자(Observer) 동작
-      if (window.innerWidth <= 768) {
-        const observerOptions = {
-          root: null,
-          threshold: 0.2 // 박스가 화면에 20% 정도 들어왔을 때 실행
-        };
-
-        const scrollObserver = new IntersectionObserver((entries, observer) => {
-          entries.forEach(entry => {
-            if (entry.isIntersecting) {
-              // 화면에 나타나면 애니메이션 클래스 추가
-              entry.target.classList.add('flip-horizontal-bottom');
-              
-              // 한 번 애니메이션이 실행된 후 반복을 원치 않으면 관찰 종료
-              // observer.unobserve(entry.target); 
-            } else {
-              // 스크롤을 위아래로 올렸다 내릴 때마다 다시 실행하고 싶다면 아래 주석 해제
-              // entry.target.classList.remove('flip-horizontal-bottom');
-            }
-          });
-        }, observerOptions);
-
-        // 감지할 카드/박스 요소들을 선택해서 관찰자에 등록
-        const targetBoxes = document.querySelectorAll('.card, .box, #diarySection, #calendarSection');
-        targetBoxes.forEach(box => scrollObserver.observe(box));
-      }
-    });
+    }, 60000);
 </script>
 </body>
 </html>
