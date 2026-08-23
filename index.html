@@ -641,6 +641,8 @@
     const koreanDays = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
     const shortKoreanDays = ['일', '월', '화', '수', '목', '금', '토'];
 
+    let isSyncing = false;
+
     window.onload = function() {
       const now = new Date();
       const year = now.getFullYear();
@@ -697,26 +699,44 @@
       return [];
     }
 
-    function fetchInitialData() {
-      setStatus('데이터 동기화 중...');
+    function autoSyncData(force = false) {
+      if (isSyncing) return;
+
+      const activeEl = document.activeElement;
+      const isInputFocused = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
+
+      if (!force && isInputFocused && activeEl.value.trim() !== '') {
+        return;
+      }
+
+      isSyncing = true;
+      setStatus('동기화 중...');
+
       if (typeof google !== 'undefined' && google.script && google.script.run) {
         google.script.run
           .withSuccessHandler(function(repTasks) {
-            repeatingTasks = repTasks || [];
+            if (repTasks) repeatingTasks = repTasks;
             renderRepeatingTasks();
             fetchWeeklyLog();
+            isSyncing = false;
+            setStatus('동기화 완료');
+            setTimeout(() => setStatus(''), 1500);
           })
-          .withFailureHandler(function(err) {
-            setStatus('반복 일정 조회 오류', true);
-            fetchWeeklyLog();
+          .withFailureHandler(function() {
+            isSyncing = false;
+            setStatus('');
           })
           .loadRepeatingTasks();
       } else {
-        setStatus('');
+        fetchWeeklyLog();
+        isSyncing = false;
       }
     }
 
-    // 선택한 날짜부터 +6일까지 총 7일 간의 데이터 조회
+    function fetchInitialData() {
+      autoSyncData(true);
+    }
+
     function fetchWeeklyLog() {
       const selectedDateVal = document.getElementById('logDate').value;
       if (!selectedDateVal) return;
@@ -768,10 +788,9 @@
             } else {
               document.getElementById('diary').value = '';
             }
-            setStatus('');
           })
           .withFailureHandler(function(err) {
-            setStatus('데이터 동기화 오류', true);
+            setStatus('데이터 불러오기 오류', true);
             renderTasks();
             renderWeeklyView();
             renderCalendar();
@@ -786,7 +805,7 @@
 
     function fetchLog() {
       syncCacheForCurrentDate();
-      fetchWeeklyLog();
+      autoSyncData(true);
     }
 
     function addTask() {
@@ -831,8 +850,7 @@
           setStatus('저장 중...');
           google.script.run
             .withSuccessHandler(function() {
-              setStatus('저장 완료');
-              setTimeout(() => setStatus(''), 2000);
+              autoSyncData(true);
             })
             .saveData({
               date: dateStr,
@@ -861,7 +879,7 @@
         google.script.run
           .withSuccessHandler(function() {
             setStatus('기록 저장 완료');
-            setTimeout(() => setStatus(''), 2000);
+            setTimeout(() => setStatus(''), 1500);
             renderWeeklyView();
             renderCalendar();
           })
@@ -893,7 +911,6 @@
       });
     }
 
-    // 선택한 날짜 + 6일 범위를 렌더링하도록 변경
     function renderWeeklyView() {
       const selectedDateVal = document.getElementById('logDate').value;
       if (!selectedDateVal) return;
@@ -1035,6 +1052,7 @@
         calendarYear += 1;
       }
       renderCalendar();
+      autoSyncData(true);
     }
 
     function toggleDaySelector(show) {
@@ -1081,20 +1099,30 @@
       repeatingTasks.push(newTask);
       input.value = '';
       renderRepeatingTasks();
-      fetchWeeklyLog();
 
       if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run.saveRepeatingTask(newTask);
+        google.script.run
+          .withSuccessHandler(function() {
+            autoSyncData(true);
+          })
+          .saveRepeatingTask(newTask);
+      } else {
+        fetchWeeklyLog();
       }
     }
 
     function removeRepeatingTask(id) {
       repeatingTasks = repeatingTasks.filter(t => t.id !== id);
       renderRepeatingTasks();
-      fetchWeeklyLog();
 
       if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run.deleteRepeatingTask(id);
+        google.script.run
+          .withSuccessHandler(function() {
+            autoSyncData(true);
+          })
+          .deleteRepeatingTask(id);
+      } else {
+        fetchWeeklyLog();
       }
     }
 
@@ -1128,15 +1156,16 @@
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
     }
-    // 1분(60초)마다 자동 동기화 실행
-    setInterval(() => {
-      const isUserTyping = document.activeElement && 
-        (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA');
 
-      if (!isUserTyping) {
-        fetchWeeklyLog();
+    // 1. [1분 정기 자동 동기화]
+    setInterval(() => autoSyncData(false), 60000);
+
+    // 2. [모바일/데스크탑 화면 복귀 시 동기화]
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'visible') {
+        autoSyncData(true);
       }
-    }, 60000);
+    });
 </script>
 </body>
 </html>
