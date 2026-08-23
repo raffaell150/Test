@@ -1096,39 +1096,48 @@
 
     // 반복 일정 추가 함수 예시
 function addRepeatingTask() {
-  const input = document.getElementById('repeatTaskInput'); // 입력창 ID
+  const input = document.getElementById('repeatTaskInput');
   const title = input.value.trim();
-  
+  const repeatType = document.querySelector('input[name="repeatType"]:checked').value;
+
   if (!title) return;
+
+  if (repeatType === 'weekly' && selectedDays.length === 0) {
+    alert('최소 하나 이상의 요일을 선택해주세요.');
+    return;
+  }
 
   const newTask = {
     id: Date.now(),
     title: title,
-    type: repeatType, // 설정된 반복 타입
-    days: selectedDays // 선택된 요일 배열
+    type: repeatType,
+    days: repeatType === 'weekly' ? [...selectedDays] : ['매일']
   };
 
-  // 1. 화면에 먼저 표시 (사용자 체감 응답 속도 향상)
+  // UI 먼저 반영
   repeatingTasks.push(newTask);
-  renderRepeatingTasks();
   input.value = '';
+  renderRepeatingTasks();
 
-  // 2. 백엔드(GAS) 저장 호출
   if (typeof google !== 'undefined' && google.script && google.script.run) {
+    setStatus('반복 일정 저장 중...');
     google.script.run
       .withSuccessHandler(function(updatedTasks) {
-        // ★ 서버에서 처리가 끝난 후 리턴된 최신 목록으로 안전하게 업데이트
+        setStatus('반복 일정 저장 완료');
+        setTimeout(() => setStatus(''), 1500);
+        
+        // ★ 서버에서 최신 반복일정 목록을 받아서 안전하게 반영
         if (updatedTasks && Array.isArray(updatedTasks)) {
           repeatingTasks = updatedTasks;
           renderRepeatingTasks();
         }
       })
       .withFailureHandler(function(err) {
-        console.error("저장 실패:", err);
-        // 실패 시 최신 서버 상태로 다시 로드하여 화면 복원
-        loadRepeatingTasksFromServer();
+        setStatus('저장 실패', true);
       })
-      .addRepeatingTaskServer(newTask); // Code.gs의 함수 호출
+      .addRepeatingTaskServer(newTask);
+  } else {
+    fetchWeeklyLog();
   }
 }
 

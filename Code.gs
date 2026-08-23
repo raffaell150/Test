@@ -1,27 +1,22 @@
 // ==========================================
 // 1. 설정 및 초기화
 // ==========================================
-const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE"; // Gemini API 키 (필요 시 수정)
-const LOG_SHEET_NAME = 'Sheet1';                   // 일기/일정 저장 시트 (필요 시 '시트1'로 변경)
-const REPEAT_SHEET_NAME = 'RepeatingTasks';         // 반복 일정 저장 시트
+const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE";
+const LOG_SHEET_NAME = 'Sheet1';
+const REPEAT_SHEET_NAME = 'RepeatingTasks';
 
-// 시트가 없으면 자동으로 생성하는 함수
 function initSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let repeatSheet = ss.getSheetByName(REPEAT_SHEET_NAME);
   if (!repeatSheet) {
     repeatSheet = ss.insertSheet(REPEAT_SHEET_NAME);
-    repeatSheet.appendRow(['id', 'title', 'type', 'days']); // 헤더 추가
+    repeatSheet.appendRow(['id', 'title', 'type', 'days']);
   }
 }
 
 // ==========================================
-// 2. 웹 앱 진입점 (doGet / doPost)
+// 2. 웹 앱 진입점
 // ==========================================
-
-/**
- * GET 요청 처리 (웹 브라우저 접속)
- */
 function doGet(e) {
   try {
     return HtmlService.createHtmlOutputFromFile('index')
@@ -33,9 +28,6 @@ function doGet(e) {
   }
 }
 
-/**
- * POST 요청 처리 (회원가입 또는 외부 API 요청 수신)
- */
 function doPost(e) {
   try {
     let data;
@@ -56,34 +48,23 @@ function doPost(e) {
     const regDate = date || Utilities.formatDate(now, "Asia/Seoul", "yyyy-MM-dd HH:mm:ss");
 
     sheet.appendRow([
-      regDate,
-      schedule || "",
-      diary || "",
-      email || "",
-      name || "",
-      userTrait || "",
-      aiResponse,
-      "SUCCESS"
+      regDate, schedule || "", diary || "", email || "", name || "", userTrait || "", aiResponse, "SUCCESS"
     ]);
 
     return ContentService.createTextOutput(JSON.stringify({
-      result: "success",
-      message: "처리 완료",
-      aiResponse: aiResponse
+      result: "success", message: "처리 완료", aiResponse: aiResponse
     })).setMimeType(ContentService.MimeType.JSON);
 
   } catch (error) {
     return ContentService.createTextOutput(JSON.stringify({
-      result: "error",
-      error: error.toString()
+      result: "error", error: error.toString()
     })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
 // ==========================================
-// 3. 일정 관리 전용 백엔드 함수들 (google.script.run 전용)
+// 3. 일정 및 반복 일정 관리 백엔드 함수
 // ==========================================
-
 function loadDataByDate(dateStr) {
   initSheets();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -101,10 +82,7 @@ function loadDataByDate(dateStr) {
     }
     
     if (formattedDate === dateStr) {
-      return {
-        tasks: data[i][1] || '',
-        diary: data[i][2] || ''
-      };
+      return { tasks: data[i][1] || '', diary: data[i][2] || '' };
     }
   }
   return { tasks: '', diary: '' };
@@ -123,7 +101,7 @@ function saveData(e) {
   initSheets();
   const lock = LockService.getScriptLock();
   try {
-    lock.waitLock(10000); // 락 적용으로 데이터 동시 덮어쓰기 방지
+    lock.waitLock(10000);
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName(LOG_SHEET_NAME) || ss.getSheets()[0];
     const data = sheet.getDataRange().getValues();
@@ -133,13 +111,11 @@ function saveData(e) {
     for (let i = 1; i < data.length; i++) {
       const rowDate = data[i][0];
       let formattedDate = '';
-      
       if (rowDate instanceof Date) {
         formattedDate = Utilities.formatDate(rowDate, Session.getScriptTimeZone(), 'yyyy-MM-dd');
       } else {
         formattedDate = String(rowDate).trim();
       }
-      
       if (formattedDate === targetDate) {
         rowIndex = i + 1;
         break;
@@ -153,14 +129,14 @@ function saveData(e) {
       sheet.appendRow([targetDate, e.tasks, e.diary]);
     }
     
-    SpreadsheetApp.flush(); // 즉시 저장 반영
+    SpreadsheetApp.flush();
     return { success: true };
   } finally {
     lock.releaseLock();
   }
 }
 
-// [수정완료] 반복 일정 불러오기
+// [핵심 해결] 반복 일정 불러오기
 function loadRepeatingTasks() {
   initSheets();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -173,7 +149,6 @@ function loadRepeatingTasks() {
       let daysArray = [];
       const rawDays = String(data[i][3] || '');
       
-      // JSON 파싱 시도 후 실패 시 기존 split 방식 지원 (안전성 확보)
       try {
         daysArray = JSON.parse(rawDays);
       } catch (e) {
@@ -181,27 +156,28 @@ function loadRepeatingTasks() {
       }
 
       tasks.push({
-        id: data[i][0],
-        title: data[i][1],
-        type: data[i][2],
-        days: daysArray
+        id: String(data[i][0]),
+        title: String(data[i][1]),
+        type: String(data[i][2]),
+        days: Array.isArray(daysArray) ? daysArray : [daysArray]
       });
     }
   }
   return tasks;
 }
 
-// [수정완료] 반복 일정 추가하기 (기존 함수명 유지: addRepeatingTaskServer)
+// [핵심 해결] 반복 일정 서버 저장
 function addRepeatingTaskServer(task) {
   initSheets();
   const lock = LockService.getScriptLock();
   try {
-    lock.waitLock(10000); // 동시성 충돌 방지
+    lock.waitLock(10000); // 락으로 동시 접근 충돌 방지
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName(REPEAT_SHEET_NAME);
     
-    const daysStr = Array.isArray(task.days) ? JSON.stringify(task.days) : task.days;
-    
+    // days 배열 처리
+    const daysStr = Array.isArray(task.days) ? task.days.join(',') : String(task.days);
+
     sheet.appendRow([
       task.id,
       task.title,
@@ -209,14 +185,13 @@ function addRepeatingTaskServer(task) {
       daysStr
     ]);
     
-    SpreadsheetApp.flush(); // ★ 핵심: 즉시 시트에 기록하여 사라짐 현상 방지
-    return loadRepeatingTasks();
+    SpreadsheetApp.flush(); // ★ 핵심: 구글 서버 디스크에 즉시 저장 강제
+    return loadRepeatingTasks(); // 저장 완료 후 최신 목록 반환
   } finally {
     lock.releaseLock();
   }
 }
 
-// [수정완료] 반복 일정 삭제하기 (기존 함수명 유지: deleteRepeatingTaskServer)
 function deleteRepeatingTaskServer(id) {
   initSheets();
   const lock = LockService.getScriptLock();
@@ -233,7 +208,7 @@ function deleteRepeatingTaskServer(id) {
       }
     }
     
-    SpreadsheetApp.flush(); // ★ 즉시 삭제 반영
+    SpreadsheetApp.flush(); // ★ 즉시 저장
     return loadRepeatingTasks();
   } finally {
     lock.releaseLock();
@@ -241,43 +216,21 @@ function deleteRepeatingTaskServer(id) {
 }
 
 // ==========================================
-// 4. Gemini API 호출 전용 함수
+// 4. Gemini API
 // ==========================================
-
 function generateAiResponse(userName, userTrait, userDiary) {
   if (!GEMINI_API_KEY || GEMINI_API_KEY === "YOUR_GEMINI_API_KEY_HERE") {
     return "API 키가 설정되지 않아 기본 답장을 반환합니다.";
   }
-
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-  
-  const promptText = `
-    당신은 사용자 맞춤형 메시지를 작성하는 AI 에이전트입니다.
-    아래 사용자의 정보를 바탕으로 맞춤형 답장을 3-4문장으로 작성해 주세요.
-    - 사용자 이름: ${userName || "회원"}
-    - 사용자 성향: ${userTrait || "정보 없음"}
-    - 일기/기록 내용: ${userDiary || "정보 없음"}
-  `;
-
-  const payload = {
-    contents: [{ parts: [{ text: promptText }] }]
-  };
-
-  const options = {
-    method: "post",
-    contentType: "application/json",
-    payload: JSON.stringify(payload),
-    muteHttpExceptions: true
-  };
+  const promptText = `사용자:${userName || "회원"}, 성향:${userTrait || "없음"}, 일기:${userDiary || "없음"}`;
+  const payload = { contents: [{ parts: [{ text: promptText }] }] };
+  const options = { method: "post", contentType: "application/json", payload: JSON.stringify(payload), muteHttpExceptions: true };
 
   try {
     const response = UrlFetchApp.fetch(url, options);
     const json = JSON.parse(response.getContentText());
-    if (json.candidates && json.candidates[0].content.parts[0].text) {
-      return json.candidates[0].content.parts[0].text.trim();
-    } else {
-      return "맞춤 메시지를 생성하는 중에 문제가 발생했습니다.";
-    }
+    return json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "응답 생성 실패";
   } catch (err) {
     return "AI 오류: " + err.toString();
   }
