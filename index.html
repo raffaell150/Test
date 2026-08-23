@@ -622,7 +622,7 @@
     <!-- 2열 중앙: 이번 주 할 일 목록 박스 -->
     <div class="column-weekly">
       <div class="weekly-header">
-        <h2>이번 주 할 일</h2>
+        <h2>앞으로 할 일</h2>
         <span id="weeklyRangeText" class="weekly-range-text"></span>
       </div>
       <div id="weeklyList" class="weekly-list"></div>
@@ -788,10 +788,14 @@
       calendarYear = currDate.getFullYear();
       calendarMonth = currDate.getMonth();
 
-      const dayOfWeek = currDate.getDay();
-      const distanceToMon = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
-      const monday = new Date(currDate);
-      monday.setDate(currDate.getDate() - distanceToMon);
+      // 기존: 이번 주 월요일 구하기
+      // 변경: 오늘 ~ 오늘 기준 7일 뒤 범위 설정
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // 오늘 00시 00분 기준
+
+      const endDate = new Date(today);
+      endDate.setDate(today.getDate() + 7); // 오늘부터 7일 뒤까지 (총 8일 간격)
+      endDate.setHours(23, 59, 59, 999);
 
       const weekDates = [];
       for (let i = 0; i < 7; i++) {
@@ -920,79 +924,62 @@
       });
     }
 
-    function renderWeeklyView() {
-      const selectedDateVal = document.getElementById('logDate').value;
-      if (!selectedDateVal) return;
+// ==========================================
+// '앞으로 할 일' (오늘 기준 +7일) 렌더링 함수
+// ==========================================
+    function renderWeeklyview() {
+      const container = document.getElementById('weeklyScheduleList');
+      if (!container) return;
 
-      const currDate = new Date(selectedDateVal + 'T00:00:00');
-      const dayOfWeek = currDate.getDay();
+      container.innerHTML = '';
 
-      const distanceToMon = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
-      const monday = new Date(currDate);
-      monday.setDate(currDate.getDate() - distanceToMon);
+      // 1. 오늘 기준 00:00:00 설정
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-      const sunday = new Date(monday);
-      sunday.setDate(monday.getDate() + 6);
+      const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
-      const rangeText = `${monday.getMonth() + 1}.${monday.getDate()} ~ ${sunday.getMonth() + 1}.${sunday.getDate()}`;
-      document.getElementById('weeklyRangeText').textContent = rangeText;
+      // 2. 오늘부터 7일 뒤까지 (총 8일간) 루프 생성
+      for (let i = 0; i <= 7; i++) {
+        const currentDate = new Date(today);
+        currentDate.setDate(today.getDate() + i);
 
-      const weeklyListEl = document.getElementById('weeklyList');
-      weeklyListEl.innerHTML = '';
+        const year = currentDate.getFullYear();
+        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const day = String(currentDate.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`; // YYYY-MM-DD 형식
+        const dayName = dayNames[currentDate.getDay()];
 
-      for (let i = 0; i < 7; i++) {
-        const targetDate = new Date(monday);
-        targetDate.setDate(monday.getDate() + i);
+        // globalEvents 배열에서 해당 날짜의 일정 필터링
+        const dayEvents = (typeof globalEvents !== 'undefined' ? globalEvents : []).filter(e => e.date === dateStr);
 
-        const year = targetDate.getFullYear();
-        const month = String(targetDate.getMonth() + 1).padStart(2, '0');
-        const day = String(targetDate.getDate()).padStart(2, '0');
-        const dateStr = `${year}-${month}-${day}`;
+        // 날짜 라벨 구성 (오늘, 내일, 08/25(화) 등)
+        let label = `${month}/${day}(${dayName})`;
+        if (i === 0) label = `오늘 (${dayName})`;
+        else if (i === 1) label = `내일 (${dayName})`;
 
-        const isCurrentSelected = (dateStr === selectedDateVal);
-        const dayCode = dayMap[targetDate.getDay()];
+        // 행 HTML 생성
+        const row = document.createElement('div');
+        row.className = 'weekly-day-row day-row';
 
-        const dayRepTasks = repeatingTasks.filter(t => t.type === 'daily' || t.days.includes(dayCode));
-
-        let dayTasks = [];
-        if (isCurrentSelected) {
-          dayTasks = [...currentTasks];
-        } else if (dailyTasksCache[dateStr]) {
-          dayTasks = [...dailyTasksCache[dateStr]];
-        } else {
-          dayTasks = dayRepTasks.map(t => ({ text: t.title, done: false }));
-        }
-
-        const card = document.createElement('div');
-        card.className = `weekly-day-card ${isCurrentSelected ? 'active-day' : ''}`;
-        card.onclick = function() {
-          document.getElementById('logDate').value = dateStr;
-          fetchLog();
-        };
-
-        let tasksHtml = '';
-        if (dayTasks.length > 0) {
-          tasksHtml = dayTasks.map(t => `
-            <li class="weekly-task-pill">
-              <span>${escapeHtml(t.text)}</span>
-              <button class="weekly-del-btn" onclick="removeTaskFromDate('${dateStr}', '${escapeHtml(t.text).replace(/'/g, "\\'")}', event)">✕</button>
-            </li>
+        let eventsHtml = '';
+        if (dayEvents.length > 0) {
+          eventsHtml = dayEvents.map(e => `
+            <span class="event-item" onclick="openEditModal('${e.id}')">
+              ${e.title}
+            </span>
           `).join('');
         } else {
-          tasksHtml = `<li class="weekly-no-task">일정 없음</li>`;
+          eventsHtml = `<span class="no-event" style="color: #999; font-size: 13px;">일정 없음</span>`;
         }
 
-        card.innerHTML = `
-          <div class="weekly-day-title">
-            <span>${targetDate.getMonth() + 1}/${targetDate.getDate()}</span>
-            <span class="day-tag">${shortKoreanDays[targetDate.getDay()]}요일</span>
-          </div>
-          <ul class="weekly-tasks-summary">
-            ${tasksHtml}
-          </ul>
+        row.innerHTML = `
+          <div class="day-label" style="font-weight: bold; min-width: 85px;">${label}</div>
+          <div class="day-events-list schedule-text" style="flex: 1;">${eventsHtml}</div>
+          <button class="add-btn btn-add" onclick="openAddModalForDate('${dateStr}')">+</button>
         `;
 
-        weeklyListEl.appendChild(card);
+        container.appendChild(row);
       }
     }
 
