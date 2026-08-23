@@ -797,6 +797,22 @@
           })
           .loadWeeklyData(weekDates);
       } else {
+        weekDates.forEach(dateStr => {
+          const dObj = new Date(dateStr + 'T00:00:00');
+          const dayCode = dayMap[dObj.getDay()];
+          let loadedTasks = dailyTasksCache[dateStr] ? [...dailyTasksCache[dateStr]] : [];
+
+          repeatingTasks.forEach(repTask => {
+            if (repTask.type === 'daily' || (repTask.days && repTask.days.includes(dayCode))) {
+              if (!loadedTasks.some(t => t.text === repTask.title)) {
+                loadedTasks.push({ text: repTask.title, done: false });
+              }
+            }
+          });
+          dailyTasksCache[dateStr] = loadedTasks;
+        });
+
+        currentTasks = dailyTasksCache[selectedDateVal] || [];
         renderTasks();
         renderWeeklyView();
         renderCalendar();
@@ -850,7 +866,8 @@
           setStatus('저장 중...');
           google.script.run
             .withSuccessHandler(function() {
-              autoSyncData(true);
+              setStatus('저장 완료');
+              setTimeout(() => setStatus(''), 1500);
             })
             .saveData({
               date: dateStr,
@@ -1077,52 +1094,60 @@
       }
     }
 
-    function addRepeatingTask() {
-      const input = document.getElementById('repeatTaskInput');
-      const title = input.value.trim();
-      const repeatType = document.querySelector('input[name="repeatType"]:checked').value;
+    // 반복 일정 추가 함수 예시
+function addRepeatingTask() {
+  const input = document.getElementById('repeatTaskInput'); // 입력창 ID
+  const title = input.value.trim();
+  
+  if (!title) return;
 
-      if (!title) return;
+  const newTask = {
+    id: Date.now(),
+    title: title,
+    type: repeatType, // 설정된 반복 타입
+    days: selectedDays // 선택된 요일 배열
+  };
 
-      if (repeatType === 'weekly' && selectedDays.length === 0) {
-        alert('최소 하나 이상의 요일을 선택해주세요.');
-        return;
-      }
+  // 1. 화면에 먼저 표시 (사용자 체감 응답 속도 향상)
+  repeatingTasks.push(newTask);
+  renderRepeatingTasks();
+  input.value = '';
 
-      const newTask = {
-        id: Date.now(),
-        title: title,
-        type: repeatType,
-        days: repeatType === 'weekly' ? [...selectedDays] : ['매일']
-      };
-
-      repeatingTasks.push(newTask);
-      input.value = '';
-      renderRepeatingTasks();
-
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(function() {
-            autoSyncData(true);
-          })
-          .saveRepeatingTask(newTask);
-      } else {
-        fetchWeeklyLog();
-      }
-    }
+  // 2. 백엔드(GAS) 저장 호출
+  if (typeof google !== 'undefined' && google.script && google.script.run) {
+    google.script.run
+      .withSuccessHandler(function(updatedTasks) {
+        // ★ 서버에서 처리가 끝난 후 리턴된 최신 목록으로 안전하게 업데이트
+        if (updatedTasks && Array.isArray(updatedTasks)) {
+          repeatingTasks = updatedTasks;
+          renderRepeatingTasks();
+        }
+      })
+      .withFailureHandler(function(err) {
+        console.error("저장 실패:", err);
+        // 실패 시 최신 서버 상태로 다시 로드하여 화면 복원
+        loadRepeatingTasksFromServer();
+      })
+      .addRepeatingTaskServer(newTask); // Code.gs의 함수 호출
+  }
+}
 
     function removeRepeatingTask(id) {
       repeatingTasks = repeatingTasks.filter(t => t.id !== id);
       renderRepeatingTasks();
+      fetchWeeklyLog();
 
       if (typeof google !== 'undefined' && google.script && google.script.run) {
+        setStatus('반복 일정 삭제 중...');
         google.script.run
           .withSuccessHandler(function() {
-            autoSyncData(true);
+            setStatus('삭제 완료');
+            setTimeout(() => setStatus(''), 1500);
+          })
+          .withFailureHandler(function(err) {
+            setStatus('삭제 실패', true);
           })
           .deleteRepeatingTask(id);
-      } else {
-        fetchWeeklyLog();
       }
     }
 

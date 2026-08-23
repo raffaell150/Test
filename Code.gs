@@ -121,38 +121,46 @@ function loadWeeklyData(dateList) {
 
 function saveData(e) {
   initSheets();
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(LOG_SHEET_NAME) || ss.getSheets()[0];
-  const data = sheet.getDataRange().getValues();
-  const targetDate = e.date;
-  
-  let rowIndex = -1;
-  for (let i = 1; i < data.length; i++) {
-    const rowDate = data[i][0];
-    let formattedDate = '';
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000); // 락 적용으로 데이터 동시 덮어쓰기 방지
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(LOG_SHEET_NAME) || ss.getSheets()[0];
+    const data = sheet.getDataRange().getValues();
+    const targetDate = e.date;
     
-    if (rowDate instanceof Date) {
-      formattedDate = Utilities.formatDate(rowDate, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    let rowIndex = -1;
+    for (let i = 1; i < data.length; i++) {
+      const rowDate = data[i][0];
+      let formattedDate = '';
+      
+      if (rowDate instanceof Date) {
+        formattedDate = Utilities.formatDate(rowDate, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+      } else {
+        formattedDate = String(rowDate).trim();
+      }
+      
+      if (formattedDate === targetDate) {
+        rowIndex = i + 1;
+        break;
+      }
+    }
+    
+    if (rowIndex > 0) {
+      sheet.getRange(rowIndex, 2).setValue(e.tasks);
+      sheet.getRange(rowIndex, 3).setValue(e.diary);
     } else {
-      formattedDate = String(rowDate).trim();
+      sheet.appendRow([targetDate, e.tasks, e.diary]);
     }
     
-    if (formattedDate === targetDate) {
-      rowIndex = i + 1;
-      break;
-    }
+    SpreadsheetApp.flush(); // 즉시 저장 반영
+    return { success: true };
+  } finally {
+    lock.releaseLock();
   }
-  
-  if (rowIndex > 0) {
-    sheet.getRange(rowIndex, 2).setValue(e.tasks);
-    sheet.getRange(rowIndex, 3).setValue(e.diary);
-  } else {
-    sheet.appendRow([targetDate, e.tasks, e.diary]);
-  }
-  
-  return { success: true };
 }
 
+// [수정완료] 반복 일정 불러오기
 function loadRepeatingTasks() {
   initSheets();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -162,46 +170,74 @@ function loadRepeatingTasks() {
   const tasks = [];
   for (let i = 1; i < data.length; i++) {
     if (data[i][0]) {
+      let daysArray = [];
+      const rawDays = String(data[i][3] || '');
+      
+      // JSON 파싱 시도 후 실패 시 기존 split 방식 지원 (안전성 확보)
+      try {
+        daysArray = JSON.parse(rawDays);
+      } catch (e) {
+        daysArray = rawDays ? rawDays.split(',') : [];
+      }
+
       tasks.push({
         id: data[i][0],
         title: data[i][1],
         type: data[i][2],
-        days: String(data[i][3]).split(',')
+        days: daysArray
       });
     }
   }
   return tasks;
 }
 
+// [수정완료] 반복 일정 추가하기 (기존 함수명 유지: addRepeatingTaskServer)
 function addRepeatingTaskServer(task) {
   initSheets();
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(REPEAT_SHEET_NAME);
-  
-  sheet.appendRow([
-    task.id,
-    task.title,
-    task.type,
-    task.days.join(',')
-  ]);
-  
-  return loadRepeatingTasks();
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000); // 동시성 충돌 방지
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(REPEAT_SHEET_NAME);
+    
+    const daysStr = Array.isArray(task.days) ? JSON.stringify(task.days) : task.days;
+    
+    sheet.appendRow([
+      task.id,
+      task.title,
+      task.type,
+      daysStr
+    ]);
+    
+    SpreadsheetApp.flush(); // ★ 핵심: 즉시 시트에 기록하여 사라짐 현상 방지
+    return loadRepeatingTasks();
+  } finally {
+    lock.releaseLock();
+  }
 }
 
+// [수정완료] 반복 일정 삭제하기 (기존 함수명 유지: deleteRepeatingTaskServer)
 function deleteRepeatingTaskServer(id) {
   initSheets();
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(REPEAT_SHEET_NAME);
-  const data = sheet.getDataRange().getValues();
-  
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === String(id)) {
-      sheet.deleteRow(i + 1);
-      break;
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(REPEAT_SHEET_NAME);
+    const data = sheet.getDataRange().getValues();
+    
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === String(id)) {
+        sheet.deleteRow(i + 1);
+        break;
+      }
     }
+    
+    SpreadsheetApp.flush(); // ★ 즉시 삭제 반영
+    return loadRepeatingTasks();
+  } finally {
+    lock.releaseLock();
   }
-  
-  return loadRepeatingTasks();
 }
 
 // ==========================================
