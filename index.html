@@ -1114,10 +1114,14 @@ function addRepeatingTask() {
     days: repeatType === 'weekly' ? [...selectedDays] : ['매일']
   };
 
-  // UI 먼저 반영
+  // UI (반복 일정 목록) 먼저 반영
   repeatingTasks.push(newTask);
   input.value = '';
   renderRepeatingTasks();
+
+  // ★ [추가] 반복 일정이 바겼으므로 메인 일정/달력도 즉시 다시 그리기
+  if (typeof renderCalendar === 'function') renderCalendar();
+  if (typeof renderWeeklyView === 'function') renderWeeklyView(); // 또는 현재 날짜 뷰 갱신 함수
 
   if (typeof google !== 'undefined' && google.script && google.script.run) {
     setStatus('반복 일정 저장 중...');
@@ -1126,27 +1130,31 @@ function addRepeatingTask() {
         setStatus('반복 일정 저장 완료');
         setTimeout(() => setStatus(''), 1500);
         
-        // ★ 서버에서 최신 반복일정 목록을 받아서 안전하게 반영
         if (updatedTasks && Array.isArray(updatedTasks)) {
           repeatingTasks = updatedTasks;
           renderRepeatingTasks();
+          
+          // ★ [추가] 서버에서 응답이 돌아온 후 최종 화면 즉시 갱신
+          if (typeof renderCalendar === 'function') renderCalendar();
+          if (typeof renderWeeklyView === 'function') renderWeeklyView();
         }
       })
       .withFailureHandler(function(err) {
         setStatus('저장 실패', true);
       })
       .addRepeatingTaskServer(newTask);
-  } else {
-    fetchWeeklyLog();
   }
 }
 
     function removeRepeatingTask(id) {
-  // 1. 화면에서 먼저 제거 (숫자/문자열 모두 대응하도록 == 사용)
+  // 1. 화면 반복목록에서 제거
   repeatingTasks = repeatingTasks.filter(t => t.id != id);
   renderRepeatingTasks();
 
-  // 2. 서버에 삭제 요청
+  // ★ [추가] 삭제 즉시 메인 일정/달력에서도 지워지도록 즉시 화면 갱신
+  if (typeof renderCalendar === 'function') renderCalendar();
+  if (typeof renderWeeklyView === 'function') renderWeeklyView();
+
   if (typeof google !== 'undefined' && google.script && google.script.run) {
     setStatus('반복 일정 삭제 중...');
     google.script.run
@@ -1154,19 +1162,19 @@ function addRepeatingTask() {
         setStatus('삭제 완료');
         setTimeout(() => setStatus(''), 1500);
         
-        // ★ 서버에서 삭제 반영 후 리턴된 최신 목록으로 화면 최종 동기화
         if (updatedTasks && Array.isArray(updatedTasks)) {
           repeatingTasks = updatedTasks;
           renderRepeatingTasks();
+          
+          // ★ [추가] 서버 삭제 완료 후 최종 화면 즉시 갱신
+          if (typeof renderCalendar === 'function') renderCalendar();
+          if (typeof renderWeeklyView === 'function') renderWeeklyView();
         }
       })
       .withFailureHandler(function(err) {
         setStatus('삭제 실패', true);
-        console.error("삭제 실패:", err);
       })
       .deleteRepeatingTaskServer(id);
-  } else {
-    fetchWeeklyLog();
   }
 }
 
