@@ -1,248 +1,161 @@
 // ==========================================
-// 1. 설정 및 초기화
+// Google Apps Script 백엔드 메인 로직
 // ==========================================
-const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE"; // Gemini API 키 (필요 시 수정)
-const LOG_SHEET_NAME = 'Sheet1';                   // 일기/일정 저장 시트 (필요 시 '시트1'로 변경)
-const REPEAT_SHEET_NAME = 'RepeatingTasks';         // 반복 일정 저장 시트
 
-// 시트가 없으면 자동으로 생성하는 함수
+function doGet() {
+  return HtmlService.createTemplateFromFile('index')
+    .evaluate()
+    .setTitle('일정 & 일기 관리')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+// 1. 구글 시트 초기화 함수 (initSheets 복구)
 function initSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let repeatSheet = ss.getSheetByName(REPEAT_SHEET_NAME);
-  if (!repeatSheet) {
-    repeatSheet = ss.insertSheet(REPEAT_SHEET_NAME);
-    repeatSheet.appendRow(['id', 'title', 'type', 'days']); // 헤더 추가
+  
+  // Events 시트 확인 및 생성
+  let eventsSheet = ss.getSheetByName('Events');
+  if (!eventsSheet) {
+    eventsSheet = ss.insertSheet('Events');
+    eventsSheet.appendRow(['ID', 'Date', 'Title', 'Category']);
+    eventsSheet.getRange('A1:D1').setFontWeight('bold');
   }
+
+  // Diaries 시트 확인 및 생성
+  let diariesSheet = ss.getSheetByName('Diaries');
+  if (!diariesSheet) {
+    diariesSheet = ss.insertSheet('Diaries');
+    diariesSheet.appendRow(['ID', 'Date', 'Content']);
+    diariesSheet.getRange('A1:C1').setFontWeight('bold');
+  }
+
+  return "시트 초기화 완료";
 }
 
-// ==========================================
-// 2. 웹 앱 진입점 (doGet / doPost)
-// ==========================================
-
-/**
- * GET 요청 처리 (웹 브라우저 접속)
- */
-function doGet(e) {
+// 2. 초기 데이터 일괄 수신 (일정 + 일기)
+function getInitialData() {
   try {
-    return HtmlService.createHtmlOutputFromFile('index')
-      .setTitle('일정 및 기록 관리')
-      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
-  } catch (err) {
-    return ContentService.createTextOutput("Google Apps Script Web App is running correctly.")
-      .setMimeType(ContentService.MimeType.TEXT);
+    // 필요시 자동 시트 생성
+    initSheets();
+
+    const events = getEventsFromSheet();
+    const diaries = getDiariesFromSheet();
+    return {
+      success: true,
+      events: events || [],
+      diaries: diaries || []
+    };
+  } catch (e) {
+    return {
+      success: false,
+      error: e.toString(),
+      events: [],
+      diaries: []
+    };
   }
 }
 
-/**
- * POST 요청 처리 (회원가입 또는 외부 API 요청 수신)
- */
-function doPost(e) {
-  try {
-    let data;
-    if (e.postData && e.postData.contents) {
-      data = JSON.parse(e.postData.contents);
-    } else if (e.parameter) {
-      data = e.parameter;
-    } else {
-      throw new Error("전송된 데이터가 없습니다.");
-    }
-
-    const { date, schedule, diary, email, name, userTrait } = data;
-    const aiResponse = generateAiResponse(name, userTrait, diary);
-
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    let sheet = ss.getSheetByName(LOG_SHEET_NAME) || ss.getSheets()[0];
-    const now = new Date();
-    const regDate = date || Utilities.formatDate(now, "Asia/Seoul", "yyyy-MM-dd HH:mm:ss");
-
-    sheet.appendRow([
-      regDate,
-      schedule || "",
-      diary || "",
-      email || "",
-      name || "",
-      userTrait || "",
-      aiResponse,
-      "SUCCESS"
-    ]);
-
-    return ContentService.createTextOutput(JSON.stringify({
-      result: "success",
-      message: "처리 완료",
-      aiResponse: aiResponse
-    })).setMimeType(ContentService.MimeType.JSON);
-
-  } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({
-      result: "error",
-      error: error.toString()
-    })).setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
-// ==========================================
-// 3. 일정 관리 전용 백엔드 함수들 (google.script.run 전용)
-// ==========================================
-
-function loadDataByDate(dateStr) {
-  initSheets();
+// 3. 구글 시트에서 일정 읽기
+function getEventsFromSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(LOG_SHEET_NAME) || ss.getSheets()[0];
-  const data = sheet.getDataRange().getValues();
-  
-  for (let i = 1; i < data.length; i++) {
-    const rowDate = data[i][0];
-    let formattedDate = '';
-    
-    if (rowDate instanceof Date) {
-      formattedDate = Utilities.formatDate(rowDate, Session.getScriptTimeZone(), 'yyyy-MM-dd');
-    } else {
-      formattedDate = String(rowDate).trim();
-    }
-    
-    if (formattedDate === dateStr) {
-      return {
-        tasks: data[i][1] || '',
-        diary: data[i][2] || ''
-      };
-    }
-  }
-  return { tasks: '', diary: '' };
-}
+  let sheet = ss.getSheetByName('Events');
+  if (!sheet) return [];
 
-function loadWeeklyData(dateList) {
-  const result = {};
-  for (let i = 0; i < dateList.length; i++) {
-    const dateStr = dateList[i];
-    result[dateStr] = loadDataByDate(dateStr);
-  }
-  return result;
-}
-
-function saveData(e) {
-  initSheets();
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(LOG_SHEET_NAME) || ss.getSheets()[0];
   const data = sheet.getDataRange().getValues();
-  const targetDate = e.date;
-  
-  let rowIndex = -1;
-  for (let i = 1; i < data.length; i++) {
-    const rowDate = data[i][0];
-    let formattedDate = '';
-    
-    if (rowDate instanceof Date) {
-      formattedDate = Utilities.formatDate(rowDate, Session.getScriptTimeZone(), 'yyyy-MM-dd');
-    } else {
-      formattedDate = String(rowDate).trim();
-    }
-    
-    if (formattedDate === targetDate) {
-      rowIndex = i + 1;
-      break;
-    }
-  }
-  
-  if (rowIndex > 0) {
-    sheet.getRange(rowIndex, 2).setValue(e.tasks);
-    sheet.getRange(rowIndex, 3).setValue(e.diary);
-  } else {
-    sheet.appendRow([targetDate, e.tasks, e.diary]);
-  }
-  
-  return { success: true };
-}
+  if (data.length <= 1) return [];
 
-function loadRepeatingTasks() {
-  initSheets();
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(REPEAT_SHEET_NAME);
-  const data = sheet.getDataRange().getValues();
-  
-  const tasks = [];
+  const events = [];
   for (let i = 1; i < data.length; i++) {
-    if (data[i][0]) {
-      tasks.push({
-        id: data[i][0],
-        title: data[i][1],
-        type: data[i][2],
-        days: String(data[i][3]).split(',')
+    const row = data[i];
+    if (row[0]) { // ID가 존재하는 경우
+      let dateStr = row[1];
+      if (dateStr instanceof Date) {
+        const y = dateStr.getFullYear();
+        const m = String(dateStr.getMonth() + 1).padStart(2, '0');
+        const d = String(dateStr.getDate()).padStart(2, '0');
+        dateStr = `${y}-${m}-${d}`;
+      }
+      events.push({
+        id: String(row[0]),
+        date: String(dateStr),
+        title: String(row[2] || ''),
+        category: String(row[3] || '기타')
       });
     }
   }
-  return tasks;
+  return events;
 }
 
-function addRepeatingTaskServer(task) {
-  initSheets();
+// 4. 구글 시트에서 일기 읽기
+function getDiariesFromSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(REPEAT_SHEET_NAME);
-  
-  sheet.appendRow([
-    task.id,
-    task.title,
-    task.type,
-    task.days.join(',')
-  ]);
-  
-  return loadRepeatingTasks();
-}
+  let sheet = ss.getSheetByName('Diaries');
+  if (!sheet) return [];
 
-function deleteRepeatingTaskServer(id) {
-  initSheets();
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(REPEAT_SHEET_NAME);
   const data = sheet.getDataRange().getValues();
-  
+  if (data.length <= 1) return [];
+
+  const diaries = [];
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (row[0]) {
+      let dateStr = row[1];
+      if (dateStr instanceof Date) {
+        const y = dateStr.getFullYear();
+        const m = String(dateStr.getMonth() + 1).padStart(2, '0');
+        const d = String(dateStr.getDate()).padStart(2, '0');
+        dateStr = `${y}-${m}-${d}`;
+      }
+      diaries.push({
+        id: String(row[0]),
+        date: String(dateStr),
+        content: String(row[2] || '')
+      });
+    }
+  }
+  return diaries;
+}
+
+// 5. 일정 저장/수정
+function saveEventToSheet(eventData) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('Events');
+  if (!sheet) {
+    initSheets();
+    sheet = ss.getSheetByName('Events');
+  }
+
+  const data = sheet.getDataRange().getValues();
+  let foundIndex = -1;
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(eventData.id)) {
+      foundIndex = i + 1;
+      break;
+    }
+  }
+
+  if (foundIndex > 0) {
+    sheet.getRange(foundIndex, 1, 1, 4).setValues([[eventData.id, eventData.date, eventData.title, eventData.category]]);
+  } else {
+    sheet.appendRow([eventData.id, eventData.date, eventData.title, eventData.category]);
+  }
+  return getInitialData();
+}
+
+// 6. 일정 삭제
+function deleteEventFromSheet(id) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('Events');
+  if (!sheet) return getInitialData();
+
+  const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][0]) === String(id)) {
       sheet.deleteRow(i + 1);
       break;
     }
   }
-  
-  return loadRepeatingTasks();
-}
-
-// ==========================================
-// 4. Gemini API 호출 전용 함수
-// ==========================================
-
-function generateAiResponse(userName, userTrait, userDiary) {
-  if (!GEMINI_API_KEY || GEMINI_API_KEY === "YOUR_GEMINI_API_KEY_HERE") {
-    return "API 키가 설정되지 않아 기본 답장을 반환합니다.";
-  }
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-  
-  const promptText = `
-    당신은 사용자 맞춤형 메시지를 작성하는 AI 에이전트입니다.
-    아래 사용자의 정보를 바탕으로 맞춤형 답장을 3-4문장으로 작성해 주세요.
-    - 사용자 이름: ${userName || "회원"}
-    - 사용자 성향: ${userTrait || "정보 없음"}
-    - 일기/기록 내용: ${userDiary || "정보 없음"}
-  `;
-
-  const payload = {
-    contents: [{ parts: [{ text: promptText }] }]
-  };
-
-  const options = {
-    method: "post",
-    contentType: "application/json",
-    payload: JSON.stringify(payload),
-    muteHttpExceptions: true
-  };
-
-  try {
-    const response = UrlFetchApp.fetch(url, options);
-    const json = JSON.parse(response.getContentText());
-    if (json.candidates && json.candidates[0].content.parts[0].text) {
-      return json.candidates[0].content.parts[0].text.trim();
-    } else {
-      return "맞춤 메시지를 생성하는 중에 문제가 발생했습니다.";
-    }
-  } catch (err) {
-    return "AI 오류: " + err.toString();
-  }
+  return getInitialData();
 }
