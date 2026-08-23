@@ -520,43 +520,6 @@
 }
 
 /* 2. 모바일 화면 (너비 768px 이하) 대응 */
-@media (max-width: 768px) {
-  /* 전체 컨테이너 너비 및 여백 조정 */
-  body {
-    padding: 10px !important;
-  }
-  
-  .container, .main-content, #app {
-    width: 100% !important;
-    max-width: 100% !important;
-    padding: 10px !important;
-    margin: 0 auto !important;
-  }
-
-  /* 일기/일정 박스 및 모달 창 최적화 */
-  .card, .box, .modal-content, #diarySection, #calendarSection {
-    width: 100% !important;
-    max-width: 100% !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    padding: 15px !important;
-  }
-
-  /* 입력창 및 버튼 모바일 크기 맞춤 */
-  input[type="text"], textarea, select, button {
-    width: 100% !important;
-    font-size: 16px !important; /* 아이폰 자동 확대 방지 크기 */
-  }
-
-  /* 달력 표나 일기 테이블 가로 스크롤 허용 */
-  .table-container, .calendar-container {
-    width: 100%;
-    overflow-x: auto;
-  }
-}
-/* ==========================================
-   모바일 요일별 일정 / + 버튼 비율 최적화
-   ========================================== */
 /* ==========================================
    모바일 최적화 및 스크롤 플립 애니메이션 (통합본)
    ========================================== */
@@ -569,14 +532,14 @@
     width: 100% !important;
   }
 
-  /* 일정 텍스트 입력/표시 영역: 남은 공간을 넓게 차지 */
+  /* 일정 텍스트 입력/표시 영역 */
   .schedule-text, .schedule-content, .day-events-list, .event-item {
     flex: 1 1 auto !important;
-    min-width: 0 !important; /* 글자 잘림 처리 및 오버플로우 방지 */
+    min-width: 0 !important;
     word-break: break-all !important;
   }
 
-  /* + 버튼: 고정된 작은 너비 설정 */
+  /* + 버튼 고정 너비 */
   .add-btn, .btn-add, button.add-schedule-btn {
     flex: 0 0 auto !important;
     width: 36px !important;
@@ -589,13 +552,13 @@
     border-radius: 6px !important;
   }
 
-  /* 3D 플립 연출을 위한 입체감 부여 */
-  .card, .box, #diarySection, #calendarSection {
+  /* 3D 플립 연출을 위한 실제 카드의 입체감 설정 */
+  .calendar-card, .weekly-card, .diary-card, .box-card, .card {
     perspective: 1000px;
     backface-visibility: hidden;
   }
 
-  /* 스크롤로 화면 감지 시 적용되는 Animista 플립 애니메이션 */
+  /* Animista 3D 플립 애니메이션 (360도 제자리 회전) */
   .flip-horizontal-bottom {
     -webkit-animation: flip-horizontal-bottom 0.6s cubic-bezier(0.455, 0.030, 0.515, 0.955) both;
             animation: flip-horizontal-bottom 0.6s cubic-bezier(0.455, 0.030, 0.515, 0.955) both;
@@ -607,7 +570,7 @@
               transform: rotateX(0);
     }
     100% {
-      -webkit-transform: rotateX(-360deg); /* 180deg 뒤집힘 방지를 위한 360deg 제자리 정돈 */
+      -webkit-transform: rotateX(-360deg);
               transform: rotateX(-360deg);
     }
   }
@@ -1301,54 +1264,35 @@
 // 모바일 스크롤 감지 애니메이션 실행기 (수정본)
 // ==========================================
 // 페이지가 완전히 로드된 후 실행되도록 확보
+// ==========================================
+// 모바일 스크롤 감지 애니메이션 실행기 (최종)
+// ==========================================
 window.addEventListener('load', function() {
-  console.log('DOM 완전 로드됨. 스크롤 감지 시작.');
+  // IntersectionObserver 미지원 브라우저 예외 처리
+  if (!('IntersectionObserver' in window)) return;
 
-  // 브라우저가 IntersectionObserver를 지원하는지 확인 (안전장치)
-  if (!('IntersectionObserver' in window)) {
-    console.error('이 브라우저는 IntersectionObserver를 지원하지 않습니다.');
-    return;
-  }
+  const observerOptions = {
+    root: null,
+    threshold: 0.1, // 카드 상단이 화면에 10% 이상 들어오면 바로 실행
+    rootMargin: '0px 0px -30px 0px'
+  };
 
-  // 모바일/태블릿 너비 기준 (필요시 992 등으로 늘려도 됨)
-  // 스마트폰 디바이스 픽셀 비율 때문에 window.outerWidth를 쓰는 것이 더 확실할 때가 있습니다.
-  const isMobile = (window.innerWidth <= 768) || (window.outerWidth <= 768);
-
-  // if (isMobile) { // ✅ PC에서도 테스트해보려면 이 if문을 주석 처리하세요.
-    const observerOptions = {
-      root: null, // 뷰포트를 기준으로 감지
-      threshold: 0.15, // 박스가 화면의 15% 이상 보일 때 실행 (조금 더 빨리 실행되도록 수정)
-      rootMargin: '0px 0px -50px 0px' // 하단 여백을 주어 박스가 화면 중간쯤 왔을 때 실행되도록 유도
-    };
-
-    const scrollObserver = new IntersectionObserver((entries, observer) => {
-      entries.forEach(entry => {
-        // console.log('감지 대상 상태 변경:', entry.target.id, entry.isIntersecting); // 디버깅용
-
-        if (entry.isIntersecting) {
-          // 화면에 나타나면 애니메이션 클래스 추가
-          entry.target.classList.add('flip-horizontal-bottom');
-          
-          // 한 번 실행된 후에는 다시 감지하지 않음 (스크롤 올렸다 내릴 때 반복 방지)
-          observer.unobserve(entry.target); 
-          // console.log(entry.target.id + ' 애니메이션 실행 및 관찰 종료'); // 디버깅용
-        }
-      });
-    }, observerOptions);
-
-    // 감지할 카드/박스 요소들을 더 구체적으로 지정
-    // CSS 최종본에서 정한 .card, .box, #diarySection, #calendarSection 요소들이 실제 HTML에 존재하는지 확인
-    const targetBoxes = document.querySelectorAll('.card, .box, #diarySection, #calendarSection');
-    console.log('감지 대상 개수:', targetBoxes.length);
-
-    if (targetBoxes.length === 0) {
-      console.warn('감지 대상 요소를 찾지 못했습니다. 클래스명이나 ID를 확인하세요.');
-    }
-
-    targetBoxes.forEach(box => {
-      scrollObserver.observe(box);
+  const scrollObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('flip-horizontal-bottom');
+        // 한번 나타난 카드는 다시 관찰하지 않음 (1회성 실행)
+        observer.unobserve(entry.target);
+      }
     });
-  // } // isMobile End
+  }, observerOptions);
+
+  // 실제 HTML에 들어있는 카드 클래스들을 정확하게 선택
+  const targetBoxes = document.querySelectorAll('.calendar-card, .weekly-card, .diary-card, .box-card, .card');
+  
+  targetBoxes.forEach(box => {
+    scrollObserver.observe(box);
+  });
 });
 </script>
 </body>
