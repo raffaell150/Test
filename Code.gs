@@ -201,14 +201,19 @@ function deleteRepeatingTaskServer(id) {
     const sheet = ss.getSheetByName(REPEAT_SHEET_NAME);
     const data = sheet.getDataRange().getValues();
     
-    for (let i = 1; i < data.length; i++) {
-      if (String(data[i][0]) === String(id)) {
+    // 행을 뒤에서부터 탐색하여 삭제 (행 삭제 시 인덱스 꼬임 방지)
+    for (let i = data.length - 1; i >= 1; i--) {
+      // String()으로 변환 후 trim()하여 숫자/문자열 타입 차이 및 공백 무시 비교
+      if (String(data[i][0]).trim() === String(id).trim()) {
         sheet.deleteRow(i + 1);
         break;
       }
     }
     
-    SpreadsheetApp.flush(); // ★ 즉시 저장
+    SpreadsheetApp.flush(); // ★ 시트에 삭제 결과 즉시 물리적 저장
+    return loadRepeatingTasks(); // 삭제 후 최신 목록 전체 반환
+  } catch (e) {
+    Logger.log("삭제 중 에러: " + e.toString());
     return loadRepeatingTasks();
   } finally {
     lock.releaseLock();

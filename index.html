@@ -1142,23 +1142,33 @@ function addRepeatingTask() {
 }
 
     function removeRepeatingTask(id) {
-      repeatingTasks = repeatingTasks.filter(t => t.id !== id);
-      renderRepeatingTasks();
-      fetchWeeklyLog();
+  // 1. 화면에서 먼저 제거 (숫자/문자열 모두 대응하도록 == 사용)
+  repeatingTasks = repeatingTasks.filter(t => t.id != id);
+  renderRepeatingTasks();
 
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        setStatus('반복 일정 삭제 중...');
-        google.script.run
-          .withSuccessHandler(function() {
-            setStatus('삭제 완료');
-            setTimeout(() => setStatus(''), 1500);
-          })
-          .withFailureHandler(function(err) {
-            setStatus('삭제 실패', true);
-          })
-          .deleteRepeatingTask(id);
-      }
-    }
+  // 2. 서버에 삭제 요청
+  if (typeof google !== 'undefined' && google.script && google.script.run) {
+    setStatus('반복 일정 삭제 중...');
+    google.script.run
+      .withSuccessHandler(function(updatedTasks) {
+        setStatus('삭제 완료');
+        setTimeout(() => setStatus(''), 1500);
+        
+        // ★ 서버에서 삭제 반영 후 리턴된 최신 목록으로 화면 최종 동기화
+        if (updatedTasks && Array.isArray(updatedTasks)) {
+          repeatingTasks = updatedTasks;
+          renderRepeatingTasks();
+        }
+      })
+      .withFailureHandler(function(err) {
+        setStatus('삭제 실패', true);
+        console.error("삭제 실패:", err);
+      })
+      .deleteRepeatingTaskServer(id);
+  } else {
+    fetchWeeklyLog();
+  }
+}
 
     function renderRepeatingTasks() {
       const listEl = document.getElementById('repeatingTaskList');
